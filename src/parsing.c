@@ -5,38 +5,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-enum tokenty {
-	STOP,
-	IDENTIFIER,
-	MODIFIER,
-	LITERAL,
-	OPERATOR,
-	CONTROL_STRUCTURE,
-	TYPE_TYPE,
-	PRIMITIVE,
-};
-
-struct tok {
-	enum tokenty ty;
-	size_t len;
-	char str[32];
-};
-
-static void gettok(FILE * file, struct tok * token);
-
 void parse(const char * filename)
 {
 	FILE * file = fopen(filename, "rb");
 	struct tok token;
 	
-	while (1) {
-		gettok(file, &token);
-		if (token.ty == STOP) {
-			break;
-		}
-		
-		printf(token.str);
-	}
+	while (fparse_element(file))
+		;
 	
 	fclose(file);
 }
@@ -85,7 +60,7 @@ static void gettok_id(FILE * file, struct tok * token)
 	}
 }
 
-static void gettok(FILE * file, struct tok * token)
+void gettok(FILE * file, struct tok * token)
 {
 	int ch = getc(file);
 	ungetc(ch, file);
