@@ -14,8 +14,8 @@ enum machine {
 };
 
 extern enum optimise optimiseLevel;
+extern enum machine target;
 extern const char * outfile;
 extern const char * filenames[32];
-extern enum machine target;
 
 #endif

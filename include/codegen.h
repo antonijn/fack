@@ -13,10 +13,12 @@ enum asmexpressiontype {
 
 struct asmexpression {
 	enum asmexpressiontype ty;
+	void (*tostring)(FILE * f, struct asmexpression * asme);
 };
 
 struct reg {
 	enum asmexpressiontype ty;
+	void (*tostring)(FILE * f, struct reg * r);
 	
 	struct reg * parent;
 	const char * name;
@@ -31,12 +33,14 @@ extern struct reg cs, ds, ss, es, fs, gs;
 
 struct immediate {
 	enum asmexpressiontype ty;
+	void (*tostring)(FILE * f, struct immediate * i);
 	int * value;
 	const char * str;
 };
 
 struct effective_address8086 {
 	enum asmexpressiontype ty;
+	void (*tostring)(FILE * f, struct effective_address8086 * ea);
 	
 	struct reg * segment;
 	struct reg * base;
@@ -54,8 +58,8 @@ struct effective_address8086 new_ea8086(struct reg * segment,
 										struct asmexpression * displacement,
 										size_t size);
 
-void asme_tostring(FILE * f, struct asmexpression * asme);
-
 void write_instr(FILE * f, const char * instr, size_t ops, ...);
+void write_label(FILE * f, const char * lbl);
+void write_resb(FILE * f, size_t cnt);
 
 #endif

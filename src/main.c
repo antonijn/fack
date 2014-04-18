@@ -73,6 +73,11 @@ int main(int argc, char **argv) {
 		}
 	}
 	
+	if (!filenames[0]) {
+		fprintf(stderr, "error: no input files specified\n");
+		exit(1);
+	}
+	
 	for (i = 0; filenames[i]; ++i) {
 		parse(filenames[i]);
 	}

@@ -1,0 +1,2 @@
+build:
+	../fack test.c
