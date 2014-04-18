@@ -130,6 +130,11 @@ struct ctype * f_readty(FILE * file, struct ctype * prev)
 {
 	gettok(file);
 	
+	if (token.ty == STOP)
+	{
+		return NULL;
+	}
+	
 	if (token.ty == PRIMITIVE) {
 		if (!strcmp(token.str, "char")) {
 			return f_readty(file, (struct ctype *)&_char);
@@ -184,6 +189,7 @@ int fparse_afterty(FILE * file, struct ctype * ty)
 			gettok(file);
 			fparse_afterty(file, ty);
 		}
+		return 0;
 		
 	} else if (token.str[0] != ')') {
 		free(id);
@@ -196,9 +202,11 @@ int fparse_element(FILE * file)
 {
 	struct ctype * ty;
 	
-	
 	/* read typename */
 	ty = f_readty(file, NULL);
+	if (!ty) {
+		return 1;
+	}
 	
 	/* typename, semicolon if no global */
 	if (!strcmp(token.str, ";")) {
