@@ -31,6 +31,21 @@ void freelist(struct list * l) {
 	int i;
 	for (i = 0; i < l->count; ++i) {
 		struct lelement le = l->elements[i];
+		if (!le.cleanup) {
+			continue;
+		}
+		le.cleanup(le.element);
+	}
+}
+
+void removelast(struct list * l, size_t cnt)
+{
+	int i;
+	for (i = 0; i < cnt; ++i) {
+		struct lelement le = l->elements[l->count - i - 1];
+		if (!le.cleanup) {
+			continue;
+		}
 		le.cleanup(le.element);
 	}
 }

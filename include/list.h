@@ -18,5 +18,6 @@ struct list new_list(size_t c);
 void add(struct list * l, void * e, void (*c)(void *));
 int contains(struct list * l, void * e);
 void freelist(struct list * l);
+void removelast(struct list * l, size_t cnt);
 
 #endif

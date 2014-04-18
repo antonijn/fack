@@ -71,7 +71,7 @@ struct cstruct * new_cstruct(size_t namelen, char * name)
 
 static void cleanup_cpointer(struct cpointer * self)
 {
-	self->type->cleanup(self->type);
+	self->type->lcleanup(self->type);
 	free(self);
 }
 
@@ -79,6 +79,7 @@ struct cpointer * new_cpointer(struct ctype * type)
 {
 	struct cpointer * res = malloc(sizeof(struct cpointer));
 	res->ty = POINTER;
+	res->size = (target == INTEL_8086) ? 2 : 4;
 	res->cleanup = &cleanup_cpointer;
 	res->lcleanup = &cleanup_cpointer;
 	res->type = type;
@@ -87,46 +88,72 @@ struct cpointer * new_cpointer(struct ctype * type)
 
 static void cleanup_var(struct cvariable * self)
 {
-	free(self->id);
+	if (self->ty == GLOBAL) {
+		struct cglobal * g = (struct cglobal *)self;
+		g->label->cleanup(g->label);
+	}
 	self->type->lcleanup(self->type);
 	free(self);
 }
 
-struct cvariable * new_global(struct ctype * type, char * id)
+struct cglobal * new_global(struct ctype * type, char * id)
 {
 	size_t idl = strlen(id);
-	struct cvariable * res = malloc(sizeof(struct cvariable));
+	struct cglobal * res = malloc(sizeof(struct cvariable));
 	res->ty = GLOBAL;
-	res->cleanup = &cleanup_var;
+	res->cleanup = (void (*)(struct cglobal *))&cleanup_var;
 	res->type = type;
-	res->id = malloc(idl + 1);
-	memcpy(res->id, id, idl + 1);
+	res->label = new_label(id);
+	res->id = res->label->str;
 	return res;
 }
-struct cvariable * new_local(struct ctype * type, char * id)
+struct clocal * new_local(struct ctype * type, char * id, int stack_offset)
 {
 	size_t idl = strlen(id);
-	struct cvariable * res = malloc(sizeof(struct cvariable));
+	struct clocal * res = malloc(sizeof(struct cvariable));
 	res->ty = LOCAL;
-	res->cleanup = &cleanup_var;
+	res->cleanup = (void (*)(struct clocal *))&cleanup_var;
 	res->type = type;
 	res->id = malloc(idl + 1);
 	memcpy(res->id, id, idl + 1);
+	res->stack_offset = stack_offset;
 	return res;
 }
-struct cvariable * new_param(struct ctype * type, char * id)
+struct cparam * new_param(struct ctype * type, char * id, int stack_offset)
 {
 	size_t idl = strlen(id);
-	struct cvariable * res = malloc(sizeof(struct cvariable));
+	struct cparam * res = malloc(sizeof(struct cvariable));
 	res->ty = PARAM;
-	res->cleanup = &cleanup_var;
+	res->cleanup = (void (*)(struct cparam *))&cleanup_var;
 	res->type = type;
 	res->id = malloc(idl + 1);
 	memcpy(res->id, id, idl + 1);
+	res->stack_offset = stack_offset;
 	return res;
 }
 
-struct ctype * f_readty(FILE * file, struct ctype * prev)
+static void cleanup_cfunction(struct cfunction * self)
+{
+	//free(self->id);
+	free(self->label);
+	self->ret->lcleanup(self->ret);
+	freelist(&self->params);
+	free(self);
+}
+
+struct cfunction * new_function(struct ctype * ret, char * id)
+{
+	struct cfunction * res = malloc(sizeof(struct cfunction));
+	res->cleanup = &cleanup_cfunction;
+	res->label = new_label(id);
+	res->id = res->label->str;
+	res->ret = ret;
+	res->params = new_list(16);
+	return res;
+}
+
+/* leaves token at identifier */
+static struct ctype * f_readty(FILE * file, struct ctype * prev)
 {
 	gettok(file);
 	
@@ -155,10 +182,63 @@ struct ctype * f_readty(FILE * file, struct ctype * prev)
 	}
 	
 	if (token.str[0] == '*') {
+		gettok(file);
 		return (struct ctype *)new_cpointer(prev);
 	}
 	
 	return prev;
+}
+
+void fparse_func(FILE * file, struct ctype * ty, char * id)
+{
+	/* token is now ( */
+	int stack_offset;
+	struct cfunction * func;
+	
+	stack_offset = 4;
+	func = new_function(ty, id);
+	
+	while (token.str[0] != ')')
+	{
+		char * pid;
+		struct cparam * param;
+		struct ctype * pty;
+		
+		pty = f_readty(file, NULL);
+		/* ) char, for example */
+		if (!pty) {
+			if (token.str[0] != ')') {
+				fprintf(stderr, "error: unexpected token %s\n", token.str);
+			}
+			break;
+		}
+		
+		pid = malloc(token.len + 1);
+		pid[token.len] = '\0';
+		memcpy(pid, token.str, token.len);
+		
+		/* go to , */
+		gettok(file);
+		if (token.str[0] != ',' && token.str[0] != ')') {
+			fprintf(stderr, "error: expected ','\n");
+		}
+		
+		param = new_param(pty, pid, stack_offset);
+		free(pid);
+		add(&func->params, (void *)param, (void (*)(void *))param->cleanup);
+		stack_offset += pty->size;
+	}
+	
+	gettok(file);
+	
+	/* ; or { */
+	if (token.str[0] == ';') {
+		add(&functions, (void *)func, (void (*)(void *))func->cleanup);
+	} else {
+		write_label(ofile, func->label);
+		sparser_body(file, ofile, &func->params);
+		write_instr(ofile, "ret", 0);
+	}
 }
 
 int fparse_afterty(FILE * file, struct ctype * ty)
@@ -177,11 +257,13 @@ int fparse_afterty(FILE * file, struct ctype * ty)
 		
 		/* TODO: var init vals */
 		
-		write_label(ofile, id);
+		struct cglobal * g = new_global(ty, id);
+		g->label->str = g->id;
+		free(id);
+		
+		write_label(ofile, g->label);
 		write_resb(ofile, ty->size);
 		
-		struct cvariable * g = new_global(ty, id);
-		free(id);
 		add(&globals, (void *)g, (void (*)(void *))g->cleanup);
 		
 		if (token.str[0] == ',') {
@@ -191,11 +273,15 @@ int fparse_afterty(FILE * file, struct ctype * ty)
 		}
 		return 0;
 		
-	} else if (token.str[0] != ')') {
+	} else if (token.str[0] != '(') {
 		free(id);
 		fprintf(stderr, "error: unexpected token %s\n", token.str);
 		return 0;
 	}
+	
+	/* function */
+	fparse_func(file, ty, id);
+	free(id);
 }
 
 int fparse_element(FILE * file)

@@ -3,6 +3,8 @@
 
 #include <stdio.h>
 #include <list.h>
+#include <codegen.h>
+#include <options.h>
 
 enum tokenty {
 	STOP,
@@ -88,11 +90,51 @@ struct cvariable {
 	char * id;
 };
 
-struct cvariable * new_global(struct ctype * type, char * id);
-struct cvariable * new_local(struct ctype * type, char * id);
-struct cvariable * new_param(struct ctype * type, char * id);
+struct cglobal {
+	enum cvariable_type ty;
+	void (*cleanup)(struct cglobal * self);
+	
+	struct ctype * type;
+	char * id;
+	struct immediate * label;
+};
+
+struct clocal {
+	enum cvariable_type ty;
+	void (*cleanup)(struct clocal * self);
+	
+	struct ctype * type;
+	char * id;
+	int stack_offset;
+};
+
+struct cparam {
+	enum cvariable_type ty;
+	void (*cleanup)(struct cparam * self);
+	
+	struct ctype * type;
+	char * id;
+	int stack_offset;
+};
+
+struct cfunction {
+	void (*cleanup)(struct cfunction * self);
+	
+	struct ctype * ret;
+	char * id;
+	struct immediate * label;
+	struct list params;
+};
+
+struct cfunction * new_function(struct ctype * ret, char * id);
+
+struct cglobal * new_global(struct ctype * type, char * id);
+struct clocal * new_local(struct ctype * type, char * id, int stack_offset);
+struct cparam * new_param(struct ctype * type, char * id, int stack_offset);
 
 extern struct cprimitive _char, _int, _long, _float, _double, _void;
+
+extern struct list functions, types, globals;
 
 struct cstruct * new_cstruct(size_t namelen, char * name);
 struct cpointer * new_cpointer(struct ctype * type);
@@ -104,5 +146,9 @@ void gettok(FILE * file);
 void parse(const char * filename);
 void fparser_init(FILE * ofile);
 void fparser_release(void);
+
+void sparser_body(FILE * file, FILE * ofile, struct list * vars);
+
+struct asmexpression * eparser(FILE * file, FILE * ofile, struct list * vars);
 
 #endif
