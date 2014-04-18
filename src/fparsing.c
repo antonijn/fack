@@ -150,16 +150,52 @@ struct ctype * f_readty(FILE * file, struct ctype * prev)
 	}
 	
 	if (token.str[0] == '*') {
-		return new_cpointer(prev);
+		return (struct ctype *)new_cpointer(prev);
 	}
 	
 	return prev;
 }
 
+int fparse_afterty(FILE * file, struct ctype * ty)
+{
+	/* token is now id */
+	char * id;
+	
+	id = malloc(token.len + 1);
+	id[token.len] = '\0';
+	memcpy(id, token.str, token.len);
+	
+	/* next token: ';', '=' => var, '(' => func*/
+	gettok(file);
+	
+	if (token.str[0] == ';' || token.str[0] == '=' || token.str[0] == ',') {
+		
+		/* TODO: var init vals */
+		
+		write_label(ofile, id);
+		write_resb(ofile, ty->size);
+		
+		struct cvariable * g = new_global(ty, id);
+		free(id);
+		add(&globals, (void *)g, (void (*)(void *))g->cleanup);
+		
+		if (token.str[0] == ',') {
+			/* advance to next id */
+			gettok(file);
+			fparse_afterty(file, ty);
+		}
+		
+	} else if (token.str[0] != ')') {
+		free(id);
+		fprintf(stderr, "error: unexpected token %s\n", token.str);
+		return 0;
+	}
+}
+
 int fparse_element(FILE * file)
 {
 	struct ctype * ty;
-	char * id;
+	
 	
 	/* read typename */
 	ty = f_readty(file, NULL);
@@ -168,30 +204,5 @@ int fparse_element(FILE * file)
 	if (!strcmp(token.str, ";")) {
 		return 0;
 	}
-	id = malloc(token.len + 1);
-	id[token.len] = '\0';
-	memcpy(id, token.str, token.len);
-	
-	/* next token: ';', '=' => var, '(' => func*/
-	gettok(file);
-	
-	if (token.str[0] == ';' || token.str[0] == '=') {
-		/* TODO: var init vals */
-		
-		write_label(ofile, id);
-		write_resb(ofile, ty->size);
-		
-		struct cvariable * g = new_global(ty, id);
-		free(id);
-		add(&globals, (void *)g, g->cleanup);
-		
-	} else if (token.str[0] != ')') {
-		free(id);
-		fprintf(stderr, "error: unexpected token %s\n", token.str);
-		return 0;
-	}
-	
-	
-	
-	return 1;
+	return fparse_afterty(file, ty);
 }

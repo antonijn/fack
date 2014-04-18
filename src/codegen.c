@@ -182,7 +182,7 @@ void write_instr(FILE * f, const char * instr, size_t ops, ...)
 
 void write_label(FILE * f, const char * lbl)
 {
-	fprintf(f, "%s:\n", lbl);
+	fprintf(f, "\n%s:\n", lbl);
 }
 
 void write_resb(FILE * f, size_t cnt)

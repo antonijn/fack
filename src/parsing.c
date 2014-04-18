@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 void parse(const char * filename)
 {
@@ -76,6 +77,7 @@ static int gettok_opc(int ch)
 	switch (ch) {
 	case '(':
 	case ')':
+	case ',':
 		return 1;
 	}
 	return 0;
