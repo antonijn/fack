@@ -7,16 +7,16 @@ static void sparser_stat(FILE * file, FILE * ofile, struct list * vars);
 
 static void sparser_if(FILE * file, FILE * ofile, struct list * vars)
 {
-	struct asmexpression * cond;
+	struct expression cond;
 	struct immediate * onfalse;
 	onfalse = get_tmp_label();
 	
 	gettok(file);
-	cond = eparser(file, ofile, vars);
+	cond = eparser(file, ofile, NULL, INFLAGS, vars);
 	
-	cjmp_nc(ofile, cond, onfalse);
+	cjmp_nc(ofile, cond.asme, onfalse);
 	
-	cond->cleanup(cond);
+	cleane(cond);
 	
 	/* parse if body */
 	sparser_stat(file, ofile, vars);
@@ -50,8 +50,8 @@ static void sparser_stat(FILE * file, FILE * ofile, struct list * vars)
 	} else if (!strcmp(token.str, ";")) {
 		write_instr(ofile, "nop", 0);
 	} else {
-		struct asmexpression * asme = eparser(file, ofile, vars);
-		asme->cleanup(asme);
+		struct expression asme = eparser(file, ofile, NULL, NONE, vars);
+		cleane(asme);
 	}
 }
 

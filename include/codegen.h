@@ -44,9 +44,9 @@ extern struct reg ax, bx, cx, dx, si, di, bp, sp;
 extern struct reg al, ah, bl, bh, cl, ch, dl, dh;
 extern struct reg cs, ds, ss, es, fs, gs;
 extern struct flags_flag
-	f_e, f_ne, f_g, f_ge,
+	f_e, f_ne, f_g, f_ge, f_l, f_le,
 	f_b, f_be, f_a, f_ae,
-	f_b, f_be, f_s, f_ns, f_z, f_nz;
+	f_s, f_ns, f_z, f_nz;
 
 struct immediate {
 	enum asmexpressiontype ty;
@@ -81,13 +81,35 @@ void write_instr(FILE * f, const char * instr, size_t ops, ...);
 void write_label(FILE * f, struct immediate * lbl);
 void write_resb(FILE * f, size_t cnt);
 
+/*
+ * Enter an asm block, helps the nomenclature for get_tmp_label()
+ * */
 void asm_enter_block(void);
+/*
+ * Leave an asm block.
+ * */
 void asm_leave_block(void);
 
+/*
+ * Moves an expression into a register, baring in mind the illegal registers.
+ * */
 struct reg * toreg(FILE * f, struct asmexpression * x, struct list exclude);
+/*
+ * Pushes an asm expression onto the stack.
+ * */
+void pushasme(FILE * f, struct asmexpression * x);
+/*
+ * Conditional jumps if condition x.
+ * */
 void cjmp_c(FILE * f, struct asmexpression * x, struct immediate * jmp);
+/*
+ * Conditional jumps if not condition x.
+ * */
 void cjmp_nc(FILE * f, struct asmexpression * x, struct immediate * jmp);
 
+/*
+ * Get a new function-scoped label.
+ * */
 struct immediate * get_tmp_label(void);
 
 #endif

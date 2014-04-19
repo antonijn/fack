@@ -61,6 +61,8 @@ static int gettok_aopc(int ch)
 	case '|':
 	case '&':
 	case '^':
+	case '~':
+	case '!':
 	case '=':
 	case '>':
 	case '<':
@@ -71,9 +73,6 @@ static int gettok_aopc(int ch)
 
 static int gettok_opc(int ch)
 {
-	if (gettok_aopc(ch)) {
-		return 1;
-	}
 	switch (ch) {
 	case '(':
 	case ')':
@@ -169,11 +168,9 @@ static void gettok_num(FILE * file)
 		token.ty = HEX_INT_LITERAL;
 		break;
 	}
-	
-	token.str[token.len] = '\0';
 }
 
-static void gettok_op(FILE * file)
+static void gettok_aop(FILE * file)
 {
 	int ch = getc(file);
 	token.ty = OPERATOR;
@@ -186,10 +183,16 @@ static void gettok_op(FILE * file)
 			token.str[token.len++] = ch;
 		}
 	}
-	token.str[token.len] = '\0';
 }
 
-struct tok token;
+static void gettok_opo(FILE * file)
+{
+	int ch = getc(file);
+	token.ty = OPERATOID;
+	token.str[token.len++] = ch;
+}
+
+struct tok token = { 0 };
 
 void gettok(FILE * file)
 {
@@ -203,6 +206,7 @@ void gettok(FILE * file)
 	}
 	ungetc(ch, file);
 	
+	memset(token.str, 0, token.len);
 	token.len = 0;
 	
 	if (gettok_idc(ch)) {
@@ -218,13 +222,17 @@ void gettok(FILE * file)
 	if (ch == ';') {
 		token.ty = SEMICOLON;
 		token.str[0] = getc(file);
-		token.str[1] = '\0';
 		++token.len;
 		return;
 	}
 	
+	if (gettok_aopc(ch)) {
+		gettok_aop(file);
+		return;
+	}
+	
 	if (gettok_opc(ch)) {
-		gettok_op(file);
+		gettok_opo(file);
 		return;
 	}
 }

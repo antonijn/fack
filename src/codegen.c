@@ -266,6 +266,34 @@ struct reg * toreg(FILE * f, struct asmexpression * x, struct list exclude)
 	return r;
 }
 
+/* clogs ax */
+void pushasme(FILE * f, struct asmexpression * x)
+{
+	if (x->ty == FLAG) {
+		struct immediate * fa = get_tmp_label(), * skip = get_tmp_label();
+		struct immediate * t = new_imm(1);
+		
+		cjmp_c(f, x, fa);
+		write_instr(f, "xor", 2, &ax, &ax);
+		write_instr(f, "jmp", 1, skip);
+		write_label(f, fa);
+		write_instr(f, "mov", 2, &ax, t);
+		write_label(f, skip);
+		write_instr(f, "push", 1, &ax);
+		
+		skip->cleanup(skip);
+		t->cleanup(t);
+		fa->cleanup(fa);
+		
+		return;
+	} else if (x->ty == IMMEDIATE) {
+		write_instr(f, "mov", 2, &ax, x);
+		write_instr(f, "push", 1, &ax);
+	} else {
+		write_instr(f, "push", 1, x);
+	}
+}
+
 void cjmp_c(FILE * f, struct asmexpression * x, struct immediate * jmp)
 {
 	if (x->ty == FLAG) {

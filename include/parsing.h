@@ -11,6 +11,7 @@ enum tokenty {
 	IDENTIFIER,
 	MODIFIER,
 	OPERATOR,
+	OPERATOID,
 	CONTROL_STRUCTURE,
 	TYPE_TYPE,
 	PRIMITIVE,
@@ -126,6 +127,24 @@ struct cfunction {
 	struct list params;
 };
 
+struct expression {
+	struct asmexpression * asme;
+	struct ctype * type;
+};
+
+enum codegenhint {
+	NONE,
+	INREG,
+	ASRVALUE,
+	PUSHED,
+	INFLAGS,
+};
+
+/*
+ * Cleans up struct expression.
+ * */
+void cleane(struct expression e);
+
 struct cfunction * new_function(struct ctype * ret, char * id);
 
 struct cglobal * new_global(struct ctype * type, char * id);
@@ -149,6 +168,9 @@ void fparser_release(void);
 
 void sparser_body(FILE * file, FILE * ofile, struct list * vars);
 
-struct asmexpression * eparser(FILE * file, FILE * ofile, struct list * vars);
+struct expression eparser(FILE * file, FILE * ofile,
+                          struct asmexpression * out,
+                          enum codegenhint hint,
+                          struct list * vars);
 
 #endif

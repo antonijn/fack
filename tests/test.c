@@ -1,11 +1,11 @@
 
 void * i;
 
-void func(int a)
+void func(void * a)
 {
-	if i == i {
-		
-	} else if a == a {
-		
+	if i == a {
+		i = a;
+	} else if i + a {
+		a = i;
 	}
 }
