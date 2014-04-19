@@ -14,8 +14,7 @@ static void sparser_if(FILE * file, FILE * ofile, struct list * vars)
 	gettok(file);
 	cond = eparser(file, ofile, vars);
 	
-	write_instr(ofile, "test", 2, cond, cond);
-	write_instr(ofile, "jz", 1, onfalse);
+	cjmp_nc(ofile, cond, onfalse);
 	
 	cond->cleanup(cond);
 	

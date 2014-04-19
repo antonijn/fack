@@ -236,7 +236,10 @@ void fparse_func(FILE * file, struct ctype * ty, char * id)
 		add(&functions, (void *)func, (void (*)(void *))func->cleanup);
 	} else {
 		write_label(ofile, func->label);
+		write_instr(ofile, "push", 1, &bp);
+		write_instr(ofile, "mov", 2, &bp, &sp);
 		sparser_body(file, ofile, &func->params);
+		write_instr(ofile, "pop", 1, &bp);
 		write_instr(ofile, "ret", 0);
 	}
 }

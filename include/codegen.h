@@ -4,11 +4,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <options.h>
+#include <list.h>
 
 enum asmexpressiontype {
 	IMMEDIATE,
 	REGISTER,
 	DEREFERENCE,
+	FLAG,
 };
 
 struct asmexpression {
@@ -20,7 +22,7 @@ struct asmexpression {
 struct reg {
 	enum asmexpressiontype ty;
 	void (*tostring)(FILE * f, struct reg * r);
-	void (*cleanup)(struct reg * self);
+	void (*cleanup)(void * self);
 	
 	struct reg * parent;
 	const char * name;
@@ -28,10 +30,23 @@ struct reg {
 	enum machine arch;
 };
 
+struct flags_flag {
+	enum asmexpressiontype ty;
+	void (*tostring)(FILE * f, struct flags_flag * r);
+	void (*cleanup)(void * self);
+	
+	const char * name;
+	enum machine arch;
+};
+
 extern struct reg eax, ebx, ecx, edx, esi, edi, ebp, esp;
 extern struct reg ax, bx, cx, dx, si, di, bp, sp;
 extern struct reg al, ah, bl, bh, cl, ch, dl, dh;
 extern struct reg cs, ds, ss, es, fs, gs;
+extern struct flags_flag
+	f_e, f_ne, f_g, f_ge,
+	f_b, f_be, f_a, f_ae,
+	f_b, f_be, f_s, f_ns, f_z, f_nz;
 
 struct immediate {
 	enum asmexpressiontype ty;
@@ -68,6 +83,10 @@ void write_resb(FILE * f, size_t cnt);
 
 void asm_enter_block(void);
 void asm_leave_block(void);
+
+struct reg * toreg(FILE * f, struct asmexpression * x, struct list exclude);
+void cjmp_c(FILE * f, struct asmexpression * x, struct immediate * jmp);
+void cjmp_nc(FILE * f, struct asmexpression * x, struct immediate * jmp);
 
 struct immediate * get_tmp_label(void);
 

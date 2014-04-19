@@ -8,8 +8,9 @@
 static void reg_tostring(FILE * f, struct reg * r);
 static void ea_tostring(FILE * f, struct effective_address8086 * ea);
 static void imm_tostring(FILE * f, struct immediate * imm);
+static void flag_tostring(FILE * f, struct flags_flag * imm);
 
-static void rcu(struct reg * self)
+static void rcu(void * self)
 {
 }
 
@@ -46,6 +47,21 @@ struct reg ss = { REGISTER, &reg_tostring, &rcu, NULL, "ss", 2, INTEL_8086 };
 struct reg es = { REGISTER, &reg_tostring, &rcu, NULL, "es", 2, INTEL_8086 };
 struct reg fs = { REGISTER, &reg_tostring, &rcu, NULL, "fs", 2, INTEL_80386 };
 struct reg gs = { REGISTER, &reg_tostring, &rcu, NULL, "gs", 2, INTEL_80386 };
+
+struct flags_flag f_e  = { FLAG, &flag_tostring, &rcu, "e",  INTEL_8086 };
+struct flags_flag f_ne = { FLAG, &flag_tostring, &rcu, "ne", INTEL_8086 };
+struct flags_flag f_g  = { FLAG, &flag_tostring, &rcu, "g",  INTEL_8086 };
+struct flags_flag f_ge = { FLAG, &flag_tostring, &rcu, "ge", INTEL_8086 };
+struct flags_flag f_l  = { FLAG, &flag_tostring, &rcu, "l",  INTEL_8086 };
+struct flags_flag f_le = { FLAG, &flag_tostring, &rcu, "le", INTEL_8086 };
+struct flags_flag f_a  = { FLAG, &flag_tostring, &rcu, "a",  INTEL_8086 };
+struct flags_flag f_ae = { FLAG, &flag_tostring, &rcu, "ae", INTEL_8086 };
+struct flags_flag f_b  = { FLAG, &flag_tostring, &rcu, "b",  INTEL_8086 };
+struct flags_flag f_be = { FLAG, &flag_tostring, &rcu, "be", INTEL_8086 };
+struct flags_flag f_s  = { FLAG, &flag_tostring, &rcu, "s",  INTEL_8086 };
+struct flags_flag f_ns = { FLAG, &flag_tostring, &rcu, "ns", INTEL_8086 };
+struct flags_flag f_z  = { FLAG, &flag_tostring, &rcu, "z",  INTEL_8086 };
+struct flags_flag f_nz = { FLAG, &flag_tostring, &rcu, "nz", INTEL_8086 };
 
 static void imm_cleanup(struct immediate * self)
 {
@@ -117,16 +133,15 @@ struct effective_address8086 * new_ea8086(struct reg * segment,
 	ea->tostring = &ea_tostring;
 	ea->cleanup = cleandisp ? ea_cleanup_displ : ea_cleanup;
 	
-	if (segment) {
-		if (segment != &ss &&
-		    segment != &ds &&
-		    segment != &cs &&
-		    segment != &ds &&
-		    segment != &es &&
-		    segment != &fs &&
-		    segment != &gs) {
-			fprintf(stderr, "error: %s is not a segment register\n", segment->name);
-		}
+	if (segment != NULL &&
+		segment != &ss &&
+		segment != &ds &&
+		segment != &cs &&
+		segment != &ds &&
+		segment != &es &&
+		segment != &fs &&
+		segment != &gs) {
+		fprintf(stderr, "error: %s is not a segment register\n", segment->name);
 	}
 	ea->tostring = &ea_tostring;
 	ea->segment = segment;
@@ -198,7 +213,12 @@ static void reg_tostring(FILE * f, struct reg * r)
 	if (r->arch == INTEL_80386 && target == INTEL_8086) {
 		fprintf(stderr, "error: %s is not available in 8086\n", r->name);
 	}
-	fprintf(f, r->name);
+	fprintf(f, "%s", r->name);
+}
+
+static void flag_tostring(FILE * f, struct flags_flag * fl)
+{
+	fprintf(f, "%s", fl->name);
 }
 
 void write_instr(FILE * f, const char * instr, size_t ops, ...)
@@ -218,6 +238,93 @@ void write_instr(FILE * f, const char * instr, size_t ops, ...)
 	}
 	va_end(ap);
 	fprintf(f, "\n");
+}
+
+struct reg * toreg(FILE * f, struct asmexpression * x, struct list exclude)
+{
+	struct reg * r;
+	
+	if (x->ty != REGISTER) {
+		r = &ax;
+	}
+	
+	while (contains(&exclude, r)) {
+		if (r == &ax) {
+			r = &bx;
+		} else if (r == &bx) {
+			r = &cx;
+		} else if (r == &cx) {
+			r = &dx;
+		} else if (r == &dx) {
+			r = &ax;
+		}
+	}
+	
+	if (x != (struct asmexpression *)r) {
+		write_instr(f, "mov", 2, r, x);
+	}
+	return r;
+}
+
+void cjmp_c(FILE * f, struct asmexpression * x, struct immediate * jmp)
+{
+	if (x->ty == FLAG) {
+		char instr[4] = { 0 };
+		instr[0] = 'j';
+		strcat(instr, ((struct flags_flag *)x)->name);
+		write_instr(f, instr, 1, jmp);
+		return;
+	}
+	
+	write_instr(f, "test", 2, x, x);
+	write_instr(f, "jnz", 1, jmp);
+}
+
+static struct flags_flag * copp(struct flags_flag * fl)
+{
+	if (fl == &f_e) {
+		return &f_ne;
+	} else if (fl == &f_ne) {
+		return &f_e;
+	} else if (fl == &f_g) {
+		return &f_le;
+	} else if (fl == &f_ge) {
+		return &f_l;
+	} else if (fl == &f_l) {
+		return &f_ge;
+	} else if (fl == &f_le) {
+		return &f_g;
+	} else if (fl == &f_a) {
+		return &f_be;
+	} else if (fl == &f_ae) {
+		return &f_b;
+	} else if (fl == &f_b) {
+		return &f_ae;
+	} else if (fl == &f_be) {
+		return &f_a;
+	} else if (fl == &f_ns) {
+		return &f_s;
+	} else if (fl == &f_s) {
+		return &f_ns;
+	} else if (fl == &f_z) {
+		return &f_nz;
+	} else if (fl == &f_nz) {
+		return &f_z;
+	}
+}
+
+void cjmp_nc(FILE * f, struct asmexpression * x, struct immediate * jmp)
+{
+	if (x->ty == FLAG) {
+		char instr[4] = { 0 };
+		instr[0] = 'j';
+		strcat(instr, copp((struct flags_flag *)x)->name);
+		write_instr(f, instr, 1, jmp);
+		return;
+	}
+	
+	write_instr(f, "test", 2, x, x);
+	write_instr(f, "jz", 1, jmp);
 }
 
 void write_label(FILE * f, struct immediate * lbl)
@@ -249,7 +356,7 @@ void asm_leave_block(void)
 struct immediate * get_tmp_label(void)
 {
 	char str[32] = { 0 };
-	sprintf(str, ".L%d_%d", stacktop, labelstack[stacktop]);
+	sprintf(str, ".L%d_%d", stacktop, labelstack[stacktop]++);
 	
 	return new_label(str);
 }

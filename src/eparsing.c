@@ -27,7 +27,6 @@ static struct asmexpression * genc_var(struct cvariable * v, int addroff)
 
 static struct asmexpression * eparser_wc(FILE * file, FILE * ofile, struct asmexpression * left, int opp, struct list * vars, int addrof)
 {
-	printf("%s, %d\n", token.str, token.ty);
 	if (token.ty == SEMICOLON) {
 		return left;
 	}
@@ -45,17 +44,13 @@ static struct asmexpression * eparser_wc(FILE * file, FILE * ofile, struct asmex
 			
 			gettok(file);
 			struct asmexpression * r = eparser_wc(file, ofile, NULL, 0, vars, 0);
-			struct asmexpression * xorop = (struct asmexpression *)new_imm(-1);
 			
-			write_instr(ofile, "mov", 2, (struct asmexpression *)&ax, left);
-			write_instr(ofile, "sub", 2, (struct asmexpression *)&ax, r);
-			write_instr(ofile, "xor", 2, (struct asmexpression *)&ax, xorop);
+			write_instr(ofile, "cmp", 2, left, r);
 			
 			left->cleanup(left);
 			r->cleanup(r);
-			xorop->cleanup(xorop);
 			
-			return (struct asmexpression *)&ax;
+			return (struct asmexpression *)&f_e;
 		}
 	}
 	return left;
