@@ -13,6 +13,9 @@ func:
 	add ax, word [ss:bp + 4]
 	mov bx, word [ss:bp + 4]
 	add bx, word [i]
+	add bx, 10
+	add bx, 16
+	add bx, 8
 	cmp ax, bx
 	jne .L0_0
 	mov word [ss:bp + 4], word [i]

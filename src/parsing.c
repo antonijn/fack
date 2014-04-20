@@ -124,9 +124,9 @@ static void gettok_num(FILE * file)
 {
 	int ch = getc(file);
 	int nb = 10;
+	token.str[token.len++] = ch;
 	
 	if (ch == '0') {
-		token.str[token.len++] = ch;
 		ch = getc(file);
 		token.str[token.len++] = ch;
 		switch (ch) {
@@ -146,7 +146,7 @@ static void gettok_num(FILE * file)
 	
 	do {
 		ch = getc(file);
-		++token.len;
+		token.str[token.len++] = ch;
 	} while (gettok_hexc(ch));
 	ungetc(ch, file);
 	--token.len;

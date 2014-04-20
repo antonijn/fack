@@ -486,6 +486,27 @@ static struct expression parse_bop(
 	return eparser_r(file, ofile, out, hint, res, noop, vars);
 }
 
+static struct expression parse_intlit(
+	FILE * file, FILE * ofile,
+	struct asmexpression * out,
+	enum codegenhint hint,
+	struct expression left,
+	struct operator lastop,
+	struct list * vars,
+	const char * format)
+{
+	struct expression res;
+	int i;
+	
+	sscanf(token.str, format, &i);
+	
+	res.asme = (struct asmexpression *)new_imm(i);
+	res.type = (struct ctype *)&_int;
+	
+	gettok(file);
+	return eparser_r(file, ofile, out, hint, res, lastop, vars);
+}
+
 static struct expression eparser_r(
 	FILE * file, FILE * ofile,
 	struct asmexpression * out,
@@ -494,20 +515,24 @@ static struct expression eparser_r(
 	struct operator lastop,
 	struct list * vars)
 {
-	if (token.ty == SEMICOLON) {
+	switch (token.ty) {
+	case SEMICOLON:
 		return e_fin(ofile, left, out, hint);
-	}
-	
-	if (token.ty == IDENTIFIER) {
+	case IDENTIFIER:
 		return e_fin(ofile, parse_id(file, ofile, out, hint, left, lastop, vars), out, hint);
-	}
-	if (token.ty == OPERATOR) {
+	case OPERATOR:
 		if (left.asme) {
 			return e_fin(ofile, parse_bop(file, ofile, out, hint, left, lastop, vars), out, hint);
 		}
 		/* parse uop */
+		break;
+	case DEC_INT_LITERAL:
+		return e_fin(ofile, parse_intlit(file, ofile, out, hint, left, lastop, vars, "%d"), out, hint);
+	case HEX_INT_LITERAL:
+		return e_fin(ofile, parse_intlit(file, ofile, out, hint, left, lastop, vars, "0x%x"), out, hint);
+	case OCT_INT_LITERAL:
+		return e_fin(ofile, parse_intlit(file, ofile, out, hint, left, lastop, vars, "0%o"), out, hint);
 	}
-	
 	return left;
 }
 
