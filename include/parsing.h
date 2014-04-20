@@ -143,7 +143,7 @@ enum codegenhint {
 /*
  * Cleans up struct expression.
  * */
-void cleane(struct expression e);
+void cleane(struct expression * e);
 
 struct cfunction * new_function(struct ctype * ret, char * id);
 

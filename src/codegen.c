@@ -231,6 +231,10 @@ void write_instr(FILE * f, const char * instr, size_t ops, ...)
 	va_start(ap, ops);
 	for (i = 0; i < ops; ++i) {
 		struct asmexpression * e = va_arg(ap, struct asmexpression *);
+		if (!e) {
+			fprintf(stderr, "error: assembly expression null\n");
+			continue;
+		}
 		e->tostring(f, e);
 		if (i != ops - 1) {
 			fprintf(f, ", ");

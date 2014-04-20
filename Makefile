@@ -5,3 +5,6 @@ debug:
 runtests:
 	make debug
 	make -C tests
+runtestsdbg:
+	make debug
+	make debug -C tests

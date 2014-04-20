@@ -16,7 +16,7 @@ static void sparser_if(FILE * file, FILE * ofile, struct list * vars)
 	
 	cjmp_nc(ofile, cond.asme, onfalse);
 	
-	cleane(cond);
+	cleane(&cond);
 	
 	/* parse if body */
 	sparser_stat(file, ofile, vars);
@@ -51,7 +51,7 @@ static void sparser_stat(FILE * file, FILE * ofile, struct list * vars)
 		write_instr(ofile, "nop", 0);
 	} else {
 		struct expression asme = eparser(file, ofile, NULL, NONE, vars);
-		cleane(asme);
+		cleane(&asme);
 	}
 }
 
