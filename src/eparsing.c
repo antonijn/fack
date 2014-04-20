@@ -12,6 +12,7 @@ struct operator {
 };
 
 static const struct expression E_NULL = { NULL, NULL };
+static const struct operator noop = { 0x100, 0, 0, 0 };
 
 static struct expression eparser_r(
 	FILE * file, FILE * ofile,
@@ -310,13 +311,13 @@ static struct asmexpression * restore_left(FILE * ofile, struct expression e, in
 		va_start(ap, av);
 		acc = vgetgpr(ofile, av, ap);
 		write_instr(ofile, "mov", 2, acc, e.asme);
-		return acc;
+		return (struct asmexpression *)acc;
 	}
 	
 	last = vulnerable_gprs.elements[vulnerable_gprs.count - 1].element;
 	removelast(&vulnerable_gprs, 1);
 	
-	if (e.asme != last->gpr) {
+	if ((struct reg *)e.asme != last->gpr) {
 		fprintf(stderr, "error: internal error\n");
 	}
 	
@@ -383,11 +384,12 @@ static struct expression parse_bop(
 	struct list * vars)
 {
 	char opstr[token.len + 1];
-	struct expression right, res;
+	struct expression right, res = left;
 	struct vulnerable_gpr vgpr;
 	struct operator op = get_binop(token.str);
 	
-	if (op.prec > lastop.prec) {
+	if (op.prec >= lastop.prec) {
+		/*gettok(file);*/
 		return left;
 	}
 	
@@ -407,9 +409,7 @@ static struct expression parse_bop(
 		
 		res.type = (struct ctype *)&_int;
 		res.asme = (struct asmexpression *)&f_e;
-		return res;
-	}
-	if (!strcmp(opstr, "!=")) {
+	} else if (!strcmp(opstr, "!=")) {
 		struct asmexpression * l = restore_left(ofile, left, 0, 6, &ax, &bx, &cx, &dx, &si, &di);
 		write_instr(ofile, "cmp", 2, l, right.asme);
 		
@@ -418,9 +418,7 @@ static struct expression parse_bop(
 		
 		res.type = (struct ctype *)&_int;
 		res.asme = (struct asmexpression *)&f_e;
-		return res;
-	}
-	if (!strcmp(opstr, ">")) {
+	} else if (!strcmp(opstr, ">")) {
 		struct asmexpression * l = restore_left(ofile, left, 0, 6, &ax, &bx, &cx, &dx, &si, &di);
 		write_instr(ofile, "cmp", 2, l, right.asme);
 		
@@ -429,9 +427,7 @@ static struct expression parse_bop(
 		
 		res.type = (struct ctype *)&_int;
 		res.asme = (struct asmexpression *)&f_e;
-		return res;
-	}
-	if (!strcmp(opstr, ">=")) {
+	} else if (!strcmp(opstr, ">=")) {
 		struct asmexpression * l = restore_left(ofile, left, 0, 6, &ax, &bx, &cx, &dx, &si, &di);
 		write_instr(ofile, "cmp", 2, l, right.asme);
 		
@@ -440,9 +436,7 @@ static struct expression parse_bop(
 		
 		res.type = (struct ctype *)&_int;
 		res.asme = (struct asmexpression *)&f_e;
-		return res;
-	}
-	if (!strcmp(opstr, "<")) {
+	} else if (!strcmp(opstr, "<")) {
 		struct asmexpression * l = restore_left(ofile, left, 0, 6, &ax, &bx, &cx, &dx, &si, &di);
 		write_instr(ofile, "cmp", 2, l, right.asme);
 		
@@ -451,9 +445,7 @@ static struct expression parse_bop(
 		
 		res.type = (struct ctype *)&_int;
 		res.asme = (struct asmexpression *)&f_e;
-		return res;
-	}
-	if (!strcmp(opstr, "<=")) {
+	} else if (!strcmp(opstr, "<=")) {
 		struct asmexpression * l = restore_left(ofile, left, 0, 6, &ax, &bx, &cx, &dx, &si, &di);
 		write_instr(ofile, "cmp", 2, l, right.asme);
 		
@@ -462,18 +454,15 @@ static struct expression parse_bop(
 		
 		res.type = (struct ctype *)&_int;
 		res.asme = (struct asmexpression *)&f_e;
-		return res;
-	}
-	if (!strcmp(opstr, "=")) {
+	} else if (!strcmp(opstr, "=")) {
 		struct asmexpression * l = restore_left(ofile, left, 0, 6, &ax, &bx, &cx, &dx, &si, &di);
 		left = e_fin(ofile, right, l, NONE);
 		
 		cleane(&right);
 		
-		return left;
-	}
-	if (!strcmp(opstr, "+")) {
-		struct reg * acc = restore_left(ofile, left, 1, 6, &ax, &bx, &cx, &dx, &si, &di);
+		res = left;
+	} else if (!strcmp(opstr, "+")) {
+		struct asmexpression * acc = restore_left(ofile, left, 1, 6, &ax, &bx, &cx, &dx, &si, &di);
 		write_instr(ofile, "add", 2, acc, right.asme);
 		
 		res.type = (left.type); /* TODO: select proper type */
@@ -482,10 +471,8 @@ static struct expression parse_bop(
 		cleane(&right);
 		
 		res.asme = (struct asmexpression *)acc;
-		return res;
-	}
-	if (!strcmp(opstr, "-")) {
-		struct reg * acc = restore_left(ofile, left, 1, 6, &ax, &bx, &cx, &dx, &si, &di);
+	} else if (!strcmp(opstr, "-")) {
+		struct asmexpression * acc = restore_left(ofile, left, 1, 6, &ax, &bx, &cx, &dx, &si, &di);
 		write_instr(ofile, "sub", 2, acc, right.asme);
 		
 		res.type = (left.type); /* TODO: select proper type */
@@ -494,10 +481,9 @@ static struct expression parse_bop(
 		cleane(&right);
 		
 		res.asme = (struct asmexpression *)acc;
-		return res;
 	}
 	
-	return left;
+	return eparser_r(file, ofile, out, hint, res, noop, vars);
 }
 
 static struct expression eparser_r(
@@ -517,13 +503,7 @@ static struct expression eparser_r(
 	}
 	if (token.ty == OPERATOR) {
 		if (left.asme) {
-			struct expression r, bop = parse_bop(file, ofile, out, hint, left, lastop, vars);
-			if (bop.asme == left.asme) { /* break if op prec break */
-				return bop;
-			}
-			r = eparser_r(file, ofile, out, hint, bop, lastop, vars);
-			cleane(&bop);
-			return r;
+			return e_fin(ofile, parse_bop(file, ofile, out, hint, left, lastop, vars), out, hint);
 		}
 		/* parse uop */
 	}
@@ -538,8 +518,6 @@ struct expression eparser(
 	struct list * vars)
 {
 	struct expression e;
-	struct operator noop;
-	noop.prec = 0x100;
 	
 	vulnerable_gprs = new_list(8);
 	
