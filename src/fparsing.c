@@ -29,6 +29,9 @@ void fparser_init(FILE * outfile) {
 	types = new_list(32);
 	globals = new_list(32);
 	ofile = outfile;
+	
+	write_directive(outfile, "cpu 8086");
+	write_directive(outfile, "bits 16");
 }
 
 void fparser_release() {

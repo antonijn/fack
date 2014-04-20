@@ -1,3 +1,5 @@
+[cpu 8086]
+[bits 16]
 
 i:
 	resb 2

@@ -371,6 +371,11 @@ void write_resb(FILE * f, size_t cnt)
 	fprintf(f, "\tresb %d\n", cnt);
 }
 
+void write_directive(FILE * f, const char * dir)
+{
+	fprintf(f, "[%s]\n", dir);
+}
+
 static int stacktop = -1;
 static int labelstack[32];
 
