@@ -8,13 +8,26 @@ struct list new_list(size_t c) {
 	return r;
 }
 
-void add(struct list * l, void * e, void (*c)(void *)) {
+void add(struct list * l, void * e, void (*c)(void *))
+{
 	if (l->count == l->capacity) {
 		l->elements = realloc(l->elements, sizeof(struct lelement)
 		                      * (l->capacity = (size_t)(l->capacity * 1.6)));
 	}
 	l->elements[l->count].element = e;
 	l->elements[l->count++].cleanup = c;
+}
+
+void removefromlist(struct list * l, void * e)
+{
+	int i;
+	for (i = 0; i < l->count; ++i) {
+		if (l->elements[i].element == e) {
+			l->elements[i].cleanup(e);
+			memmove(&l->elements[i], &l->elements[i + 1], (--l->count - i) * sizeof(struct lelement));
+			return;
+		}
+	}
 }
 
 int contains(struct list * l, void * e) {

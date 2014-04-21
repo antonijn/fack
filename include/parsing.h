@@ -168,9 +168,6 @@ void fparser_release(void);
 
 void sparser_body(FILE * file, FILE * ofile, struct list * vars);
 
-struct expression eparser(FILE * file, FILE * ofile,
-                          struct asmexpression * out,
-                          enum codegenhint hint,
-                          struct list * vars);
+void * eparser(FILE * file, FILE * ofile, struct list * vars);
 
 #endif

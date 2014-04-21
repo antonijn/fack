@@ -242,6 +242,7 @@ void write_instr(FILE * f, const char * instr, size_t ops, ...)
 	}
 	va_end(ap);
 	fprintf(f, "\n");
+	fflush(f);
 }
 
 struct reg * toreg(FILE * f, struct asmexpression * x, struct list exclude)
