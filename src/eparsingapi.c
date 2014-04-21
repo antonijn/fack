@@ -27,7 +27,7 @@ static struct reginfo regs[] = {
 
 #define REGS_COUNT 6
 
-static void print_regs()
+void printreginfo(void)
 {
 	int i;
 	for (i = 0; i < REGS_COUNT; ++i) {
@@ -124,12 +124,13 @@ void clogg(struct reg * r)
 				write_instr(ofile, "push", 1, ei->e.asme);
 				ei->pushed = 1;
 				freereg(ei->e.asme);
+				return;
 			} else if (ei->r == r) {
 				write_instr(ofile, "push", 1, ei->r);
 				ei->pushed = 1;
 				freereg(ei->r);
+				return;
 			}
-			return;
 		}
 	}
 }
@@ -186,6 +187,7 @@ static void free_expr_internal(void * p)
 void * pack(struct expression e)
 {
 	struct expr_internal * ei = malloc(sizeof(struct expr_internal));
+	
 	ei->e = e;
 	if (e.asme->ty == DEREFERENCE) {
 		ei->r = getgpr();
@@ -271,23 +273,16 @@ struct expression unpacktogpr(void * p)
 		return expr;
 	}
 	if (ei->e.asme->ty == REGISTER) {
-		if (isshielded(ei->e.asme)) {
+		expr = ei->e;
+		if (isshielded(expr.asme)) {
 			expr.asme = getgpr();
 			write_instr(ofile, "mov", 2, expr.asme, ei->e.asme);
-		} else {
-			expr.asme = ei->e.asme;
 		}
-		expr.type = ei->e.type;
 		removefromlist(&packed, p);
 		return expr;
 	}
 	if (ei->e.asme->ty == DEREFERENCE) {
-		if (isshielded(ei->r)) {
-			expr.asme = getgpr();
-			write_instr(ofile, "mov", 2, expr.asme, ei->r);
-		} else {
-			expr.asme = ei->r;
-		}
+		expr.asme = ei->r;
 		expr.type = ei->e.type;
 		removefromlist(&packed, p);
 		return expr;

@@ -170,4 +170,6 @@ void sparser_body(FILE * file, FILE * ofile, struct list * vars);
 
 void * eparser(FILE * file, FILE * ofile, struct list * vars);
 
+void printreginfo(void);
+
 #endif

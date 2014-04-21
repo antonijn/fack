@@ -330,7 +330,7 @@ static void * parse_bop(
 		write_instr(ofile, "mul", 1, r.asme);
 		
 		unshield_all();
-		res.asme = l.asme;
+		res.asme = &ax;
 		res.type = l.type;
 	} else if (!strcmp(opstr, "/")) {
 		
