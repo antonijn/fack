@@ -198,7 +198,7 @@ static void * parse_bop(
 		unshield_all();
 		l = unpacktogprea(left);
 		shield(l.asme);
-		r = unpacktogprea(right);
+		r = unpacktorvalue(right);
 		cloggflags();
 		write_instr(ofile, "cmp", 2, l.asme, r.asme);
 		
@@ -212,7 +212,7 @@ static void * parse_bop(
 		unshield_all();
 		l = unpacktogprea(left);
 		shield(l.asme);
-		r = unpacktogprea(right);
+		r = unpacktorvalue(right);
 		cloggflags();
 		write_instr(ofile, "cmp", 2, l.asme, r.asme);
 		
@@ -226,7 +226,7 @@ static void * parse_bop(
 		unshield_all();
 		l = unpacktogprea(left);
 		shield(l.asme);
-		r = unpacktogprea(right);
+		r = unpacktorvalue(right);
 		cloggflags();
 		write_instr(ofile, "cmp", 2, l.asme, r.asme);
 		
@@ -240,7 +240,7 @@ static void * parse_bop(
 		unshield_all();
 		l = unpacktogprea(left);
 		shield(l.asme);
-		r = unpacktogprea(right);
+		r = unpacktorvalue(right);
 		cloggflags();
 		write_instr(ofile, "cmp", 2, l.asme, r.asme);
 		
@@ -254,7 +254,7 @@ static void * parse_bop(
 		unshield_all();
 		l = unpacktogprea(left);
 		shield(l.asme);
-		r = unpacktogprea(right);
+		r = unpacktorvalue(right);
 		cloggflags();
 		write_instr(ofile, "cmp", 2, l.asme, r.asme);
 		
@@ -268,7 +268,7 @@ static void * parse_bop(
 		unshield_all();
 		l = unpacktogprea(left);
 		shield(l.asme);
-		r = unpacktogprea(right);
+		r = unpacktorvalue(right);
 		cloggflags();
 		write_instr(ofile, "cmp", 2, l.asme, r.asme);
 		
@@ -281,7 +281,7 @@ static void * parse_bop(
 		struct expression l, r;
 		unshield_all();
 		l = unpacklvalue(left);
-		r = unpacktogprea(right);
+		r = unpacktorvalue(right);
 		cloggflags();
 		write_instr(ofile, "mov", 2, l.asme, r.asme);
 		
@@ -295,7 +295,7 @@ static void * parse_bop(
 		unshield_all();
 		l = unpacktogpr(left);
 		shield(l.asme);
-		r = unpacktogprea(right);
+		r = unpacktorvalue(right);
 		cloggflags();
 		write_instr(ofile, "add", 2, l.asme, r.asme);
 		
@@ -305,10 +305,67 @@ static void * parse_bop(
 		
 	} else if (!strcmp(opstr, "-")) {
 		
+		struct expression l, r;
+		unshield_all();
+		l = unpacktogpr(left);
+		shield(l.asme);
+		r = unpacktorvalue(right);
+		cloggflags();
+		write_instr(ofile, "sub", 2, l.asme, r.asme);
+		
+		unshield_all();
+		res.asme = l.asme;
+		res.type = l.type;
 		
 	} else if (!strcmp(opstr, "*")) {
 		
+		struct expression l, r;
+		shield_all();
+		unshield(&ax);
+		l = unpacktogpr(left);
+		unshield_all();
+		shield(&ax);
+		r = unpacktogprea(right);
+		clogg(&dx);
+		write_instr(ofile, "mul", 1, r.asme);
 		
+		unshield_all();
+		res.asme = l.asme;
+		res.type = l.type;
+	} else if (!strcmp(opstr, "/")) {
+		
+		struct expression l, r;
+		shield_all();
+		unshield(&ax);
+		l = unpacktogpr(left);
+		unshield_all();
+		shield(&ax);
+		shield(&dx);
+		r = unpacktogprea(right);
+		clogg(&dx);
+		write_instr(ofile, "xor", 2, &dx, &dx);
+		write_instr(ofile, "div", 1, r.asme);
+		
+		unshield_all();
+		res.asme = &ax;
+		res.type = l.type;
+	} else if (!strcmp(opstr, "%")) {
+		
+		struct expression l, r;
+		shield_all();
+		unshield(&ax);
+		l = unpacktogpr(left);
+		unshield_all();
+		shield(&ax);
+		shield(&dx);
+		r = unpacktogprea(right);
+		clogg(&dx);
+		write_instr(ofile, "xor", 2, &dx, &dx);
+		write_instr(ofile, "div", 1, r.asme);
+		
+		unshield_all();
+		res.asme = &dx;
+		res.type = l.type;
 	}
 	
 	return eparser_r(file, ofile, pack(res), noop, vars);

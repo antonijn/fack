@@ -27,6 +27,14 @@ static struct reginfo regs[] = {
 
 #define REGS_COUNT 6
 
+static void print_regs()
+{
+	int i;
+	for (i = 0; i < REGS_COUNT; ++i) {
+		printf("{ %s, %d, %d }\n", regs[i].r->name, regs[i].occupied, regs[i].shielded);
+	}
+}
+
 static void occupy(struct reg * r)
 {
 	int i;
@@ -88,6 +96,10 @@ void leave_exprenv(void)
 struct reg * getgpr(void)
 {
 	int i;
+	
+	/*printf("GPR requested \n");
+	print_regs();*/
+	
 	for (i = 0; i < REGS_COUNT; ++i) {
 		if (isavailable(regs[i].r)) {
 			return regs[i].r;
@@ -220,6 +232,15 @@ struct expression unpacklvalue(void * p)
 	return expr;
 }
 
+struct expression unpacktorvalue(void * p)
+{
+	struct expr_internal * ei = p;
+	if (ei->e.asme->ty == FLAG) {
+		return unpacktogpr(p);
+	}
+	return unpack(p);
+}
+
 struct expression unpacktogpr(void * p)
 {
 	struct expression expr;
@@ -250,12 +271,23 @@ struct expression unpacktogpr(void * p)
 		return expr;
 	}
 	if (ei->e.asme->ty == REGISTER) {
-		expr = ei->e;
+		if (isshielded(ei->e.asme)) {
+			expr.asme = getgpr();
+			write_instr(ofile, "mov", 2, expr.asme, ei->e.asme);
+		} else {
+			expr.asme = ei->e.asme;
+		}
+		expr.type = ei->e.type;
 		removefromlist(&packed, p);
 		return expr;
 	}
 	if (ei->e.asme->ty == DEREFERENCE) {
-		expr.asme = ei->r;
+		if (isshielded(ei->r)) {
+			expr.asme = getgpr();
+			write_instr(ofile, "mov", 2, expr.asme, ei->r);
+		} else {
+			expr.asme = ei->r;
+		}
 		expr.type = ei->e.type;
 		removefromlist(&packed, p);
 		return expr;
