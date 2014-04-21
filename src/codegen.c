@@ -394,7 +394,7 @@ void asm_leave_block(void)
 struct immediate * get_tmp_label(void)
 {
 	char str[32] = { 0 };
-	sprintf(str, ".L%d_%d", stacktop, labelstack[stacktop]++);
+	sprintf(str, ".L%d.%d", stacktop, labelstack[stacktop]++);
 	
 	return new_label(str);
 }
