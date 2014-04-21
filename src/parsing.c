@@ -206,7 +206,7 @@ void gettok(FILE * file)
 	}
 	ungetc(ch, file);
 	
-	memset(token.str, 0, token.len);
+	memset(token.str, 0, token.len + 1);
 	token.len = 0;
 	
 	if (gettok_idc(ch)) {
@@ -222,7 +222,7 @@ void gettok(FILE * file)
 	if (ch == ';') {
 		token.ty = SEMICOLON;
 		token.str[0] = getc(file);
-		++token.len;
+		token.len = 1;
 		return;
 	}
 	
@@ -235,4 +235,6 @@ void gettok(FILE * file)
 		gettok_opo(file);
 		return;
 	}
+	
+	fprintf(stderr, "error: internal tokenisation error\n");
 }

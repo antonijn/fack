@@ -226,7 +226,10 @@ void write_instr(FILE * f, const char * instr, size_t ops, ...)
 	va_list ap;
 	int i;
 	
-	fprintf(f, "\t%s ", instr);
+	fprintf(f, "\t%s", instr);
+	if (ops) {
+		fprintf(f, " ");
+	}
 	
 	va_start(ap, ops);
 	for (i = 0; i < ops; ++i) {

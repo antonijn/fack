@@ -288,6 +288,7 @@ int fparse_afterty(FILE * file, struct ctype * ty)
 	/* function */
 	fparse_func(file, ty, id);
 	free(id);
+	return 0;
 }
 
 int fparse_element(FILE * file)

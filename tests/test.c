@@ -1,7 +1,22 @@
 
-void * i;
+int i;
 
-void func(void * a)
+void foo(int end)
 {
-	a % i * a;
+	while (i != end) {
+		i = i + 1;
+	}
+}
+
+void bar(int end)
+{
+	do {
+		i = i + 1;
+	} while (i != end);
+}
+
+void quux(int end)
+{
+	for (; i != end; i = i + 1)
+		;
 }
