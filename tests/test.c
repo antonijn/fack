@@ -11,7 +11,7 @@ void foo(int end)
 void bar(int end)
 {
 	do {
-		a = a + 1;
+		a = (a + 1) * b;
 	} while (a != end);
 }
 

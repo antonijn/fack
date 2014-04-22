@@ -428,6 +428,13 @@ static void * eparser_r(
 	case OCT_INT_LITERAL:
 		left = parse_intlit(file, ofile, left, lastop, vars, "0%o");
 		break;
+	case OPERATOID:
+		if (!strcmp(token.str, "(")) {
+			gettok(file);
+			left = eparser_r(file, ofile, NULL, noop, vars);
+			gettok(file);
+			left = eparser_r(file, ofile, left, lastop, vars);
+		}
 	}
 	
 	return left;

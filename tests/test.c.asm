@@ -39,6 +39,7 @@ bar:
 .L0.0:
 	mov ax, word [a]
 	add ax, 1
+	mul word [b]
 	mov word [a], ax
 
 .L0.1:
