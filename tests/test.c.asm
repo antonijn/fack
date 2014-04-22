@@ -1,8 +1,18 @@
 [cpu 8086]
 [bits 16]
 
+section .data
+a:
+	dw 1
+
+b:
+	dw 16
+
+c:
+	dw 256
+
 section .bss
-i:
+d:
 	resb 2
 
 section .text
@@ -11,11 +21,11 @@ foo:
 	mov bp, sp
 
 .L0.0:
-	cmp word [i], word [ss:bp + 4]
+	cmp word [a], word [ss:bp + 4]
 	je .L0.1
-	mov ax, word [i]
+	mov ax, word [a]
 	add ax, 1
-	mov word [i], ax
+	mov word [a], ax
 	jmp .L0.0
 
 .L0.1:
@@ -27,12 +37,12 @@ bar:
 	mov bp, sp
 
 .L0.0:
-	mov ax, word [i]
+	mov ax, word [a]
 	add ax, 1
-	mov word [i], ax
+	mov word [a], ax
 
 .L0.1:
-	cmp word [i], word [ss:bp + 4]
+	cmp word [a], word [ss:bp + 4]
 	jne .L0.0
 
 .L0.2:
@@ -42,17 +52,17 @@ bar:
 quux:
 	push bp
 	mov bp, sp
-	mov word [i], 0
+	mov word [a], 0
 
 .L0.0:
-	cmp word [i], word [ss:bp + 4]
+	cmp word [a], word [ss:bp + 4]
 	je .L0.3
 	jmp .L0.2
 
 .L0.1:
-	mov ax, word [i]
+	mov ax, word [a]
 	add ax, 1
-	mov word [i], ax
+	mov word [a], ax
 	jmp .L0.0
 
 .L0.2:

@@ -269,10 +269,29 @@ int fparse_afterty(FILE * file, struct ctype * ty)
 		g->label->str = g->id;
 		free(id);
 		
-		to_section(ofile, ".bss");
-		
-		write_label(ofile, g->label);
-		write_resb(ofile, ty->size);
+		if (token.str[0] == '=') {
+			void * right;
+			struct list livars;
+			struct expression e;
+			
+			to_section(ofile, ".data");
+			write_label(ofile, g->label);
+			
+			livars = new_list(1);
+			
+			gettok(file);
+			enter_exprenv(ofile);
+			
+			right = eparser(file, ofile, &livars);
+			write_dx(ofile, ty->size, unpack(right));
+			
+			leave_exprenv();
+		} else {
+			to_section(ofile, ".bss");
+			write_label(ofile, g->label);
+			
+			write_resb(ofile, ty->size);
+		}
 		
 		add(&globals, (void *)g, (void (*)(void *))g->cleanup);
 		
@@ -280,6 +299,7 @@ int fparse_afterty(FILE * file, struct ctype * ty)
 			/* advance to next id */
 			gettok(file);
 			fparse_afterty(file, ty);
+			
 		}
 		return 0;
 		

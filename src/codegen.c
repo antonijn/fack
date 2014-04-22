@@ -257,6 +257,26 @@ void to_section(FILE * f, const char * sec)
 	}
 }
 
+void write_dx(FILE * f, int dsize, struct immediate * imm)
+{
+	switch (dsize) {
+	case 1:
+		fprintf(f, "\tdd ");
+		break;
+	case 2:
+		fprintf(f, "\tdw ");
+		break;
+	case 4:
+		fprintf(f, "\tdd ");
+		break;
+	case 8:
+		fprintf(f, "\tdq ");
+		break;
+	}
+	imm->tostring(f, imm);
+	fprintf(f, "\n");
+}
+
 struct reg * toreg(FILE * f, struct asmexpression * x, struct list exclude)
 {
 	struct reg * r;

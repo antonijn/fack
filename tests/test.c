@@ -1,22 +1,22 @@
 
-int i;
+int a = 0x1, b = 0x10, c = 0x100, d;
 
 void foo(int end)
 {
-	while (i != end) {
-		i = i + 1;
+	while (a != end) {
+		a = a + 1;
 	}
 }
 
 void bar(int end)
 {
 	do {
-		i = i + 1;
-	} while (i != end);
+		a = a + 1;
+	} while (a != end);
 }
 
 void quux(int end)
 {
-	for (i = 0; i != end; i = i + 1)
+	for (a = 0; a != end; a = a + 1)
 		;
 }
