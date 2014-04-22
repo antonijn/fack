@@ -57,16 +57,16 @@ static void sparser_if(FILE * file, FILE * ofile, struct list * vars)
 
 static void sparser_for(FILE * file, FILE * ofile, struct list * vars)
 {
-	struct immediate * continuebackup, * increment, * skipinc, * breakbackup;
+	struct immediate * repeat, * continuebackup, * skipinc, * breakbackup;
 	struct expression cond;
 	
 	continuebackup = continue_label;
 	breakbackup = break_label;
 	
+	repeat = get_tmp_label();
 	continue_label = get_tmp_label();
-	increment = get_tmp_label();
 	skipinc = get_tmp_label();
-	breakbackup = get_tmp_label();
+	break_label = get_tmp_label();
 	
 	/* first statement */
 	gettok(file);
@@ -76,22 +76,22 @@ static void sparser_for(FILE * file, FILE * ofile, struct list * vars)
 	gettok(file);
 	sparser_stat(file, ofile, vars);
 	
-	write_label(ofile, continue_label);
+	write_label(ofile, repeat);
 	
 	/* condition */
 	enter_exprenv(ofile);
 	gettok(file);
 	cond = unpacktoflags(eparser(file, ofile, vars));
-	cjmp_nc(ofile, cond.asme, breakbackup);
+	cjmp_nc(ofile, cond.asme, break_label);
 	write_instr(ofile, "jmp", 1, skipinc);
-	write_label(ofile, increment);
+	write_label(ofile, continue_label);
 	leave_exprenv();
 	
 	/* "increment" */
 	gettok(file);
 	sparser_stat(file, ofile, vars);
 	
-	write_instr(ofile, "jmp", 1, continue_label);
+	write_instr(ofile, "jmp", 1, repeat);
 	write_label(ofile, skipinc);
 	
 	if (strcmp(token.str, ")")) {
@@ -99,13 +99,13 @@ static void sparser_for(FILE * file, FILE * ofile, struct list * vars)
 	}
 	gettok(file);
 	sparser_stat(file, ofile, vars);
-	write_instr(ofile, "jmp", 1, increment);
-	write_label(ofile, breakbackup);
+	write_instr(ofile, "jmp", 1, continue_label);
+	write_label(ofile, break_label);
 	
 	continue_label->cleanup(continue_label);
-	increment->cleanup(increment);
+	repeat->cleanup(repeat);
 	skipinc->cleanup(skipinc);
-	breakbackup->cleanup(breakbackup);
+	break_label->cleanup(break_label);
 	
 	continue_label = continuebackup;
 	break_label = breakbackup;

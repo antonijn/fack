@@ -81,6 +81,7 @@ void write_instr(FILE * f, const char * instr, size_t ops, ...);
 void write_label(FILE * f, struct immediate * lbl);
 void write_resb(FILE * f, size_t cnt);
 void write_directive(FILE * f, const char * dir);
+void to_section(FILE * f, const char * section);
 
 /*
  * Enter an asm block, helps the nomenclature for get_tmp_label()

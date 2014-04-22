@@ -10,6 +10,8 @@ static void ea_tostring(FILE * f, struct effective_address8086 * ea);
 static void imm_tostring(FILE * f, struct immediate * imm);
 static void flag_tostring(FILE * f, struct flags_flag * imm);
 
+static const char * section = "";
+
 static void rcu(void * self)
 {
 }
@@ -246,6 +248,13 @@ void write_instr(FILE * f, const char * instr, size_t ops, ...)
 	va_end(ap);
 	fprintf(f, "\n");
 	fflush(f);
+}
+
+void to_section(FILE * f, const char * sec)
+{
+	if (strcmp(section, sec)) {
+		fprintf(f, "\nsection %s", (section = sec));
+	}
 }
 
 struct reg * toreg(FILE * f, struct asmexpression * x, struct list exclude)

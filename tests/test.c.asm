@@ -1,9 +1,11 @@
 [cpu 8086]
 [bits 16]
 
+section .bss
 i:
 	resb 2
 
+section .text
 foo:
 	push bp
 	mov bp, sp
@@ -40,6 +42,7 @@ bar:
 quux:
 	push bp
 	mov bp, sp
+	mov word [i], 0
 
 .L0.0:
 	cmp word [i], word [ss:bp + 4]

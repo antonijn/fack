@@ -238,6 +238,8 @@ void fparse_func(FILE * file, struct ctype * ty, char * id)
 	if (token.str[0] == ';') {
 		add(&functions, (void *)func, (void (*)(void *))func->cleanup);
 	} else {
+		to_section(ofile, ".text");
+		
 		write_label(ofile, func->label);
 		write_instr(ofile, "push", 1, &bp);
 		write_instr(ofile, "mov", 2, &bp, &sp);
@@ -266,6 +268,8 @@ int fparse_afterty(FILE * file, struct ctype * ty)
 		struct cglobal * g = new_global(ty, id);
 		g->label->str = g->id;
 		free(id);
+		
+		to_section(ofile, ".bss");
 		
 		write_label(ofile, g->label);
 		write_resb(ofile, ty->size);

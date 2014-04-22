@@ -17,6 +17,6 @@ void bar(int end)
 
 void quux(int end)
 {
-	for (; i != end; i = i + 1)
+	for (i = 0; i != end; i = i + 1)
 		;
 }
