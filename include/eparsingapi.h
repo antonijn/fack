@@ -61,6 +61,11 @@ struct expression unpacktoflags(void * p);
 struct reg * getgpr(void);
 
 /*
+ * Cloggs an effective address.
+ */
+void cloggmem(struct effective_address8086 * ea);
+
+/*
  * Cloggs a register.
  * If a packed expression is in the register, it's value is
  * saved on the stack.

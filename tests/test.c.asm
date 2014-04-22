@@ -9,15 +9,11 @@ foo:
 	mov bp, sp
 
 .L0.0:
-	mov ax, word [i]
-	mov bx, word [ss:bp + 4]
-	cmp ax, bx
+	cmp word [i], word [ss:bp + 4]
 	je .L0.1
 	mov ax, word [i]
-	mov bx, word [i]
-	add bx, 1
-	mov word [i], bx
-	mov ax, word [i]
+	add ax, 1
+	mov word [i], ax
 	jmp .L0.0
 
 .L0.1:
@@ -30,15 +26,11 @@ bar:
 
 .L0.0:
 	mov ax, word [i]
-	mov bx, word [i]
-	add bx, 1
-	mov word [i], bx
-	mov ax, word [i]
+	add ax, 1
+	mov word [i], ax
 
 .L0.1:
-	mov ax, word [i]
-	mov bx, word [ss:bp + 4]
-	cmp ax, bx
+	cmp word [i], word [ss:bp + 4]
 	jne .L0.0
 
 .L0.2:
@@ -50,18 +42,14 @@ quux:
 	mov bp, sp
 
 .L0.0:
-	mov ax, word [i]
-	mov bx, word [ss:bp + 4]
-	cmp ax, bx
+	cmp word [i], word [ss:bp + 4]
 	je .L0.3
 	jmp .L0.2
 
 .L0.1:
 	mov ax, word [i]
-	mov bx, word [i]
-	add bx, 1
-	mov word [i], bx
-	mov ax, word [i]
+	add ax, 1
+	mov word [i], ax
 	jmp .L0.0
 
 .L0.2:

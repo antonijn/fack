@@ -137,6 +137,16 @@ void clogg(struct reg * r)
 
 void cloggall(void)
 {
+	int i;
+	
+	for (i = packed.count - 1; i >= 0; --i) {
+		struct expr_internal * ei = packed.elements[i].element;
+		if (ei->e.asme->ty == DEREFERENCE && !ei->r && !ei->pushed) {
+			write_instr(ofile, "push", 1, ei->e.asme);
+			ei->pushed = 1;
+		}
+	}
+	
 	clogg(&ax);
 	clogg(&bx);
 	clogg(&cx);
@@ -144,6 +154,21 @@ void cloggall(void)
 	clogg(&si);
 	clogg(&di);
 	cloggflags();
+}
+
+void cloggmem(struct effective_address8086 * ea)
+{
+	int i;
+	for (i = 0; i < packed.count; ++i) {
+		struct expr_internal * ei = packed.elements[i].element;
+		/* reference equality for now */
+		if (ei->e.asme == ea && !ei->r && !ei->pushed) {
+			ei->r = getgpr();
+			occupy(ei->r);
+			write_instr(ofile, "mov", 2, ei->r, ei->e.asme);
+			return;
+		}
+	}
 }
 
 void cloggflags(void)
@@ -190,9 +215,10 @@ void * pack(struct expression e)
 	
 	ei->e = e;
 	if (e.asme->ty == DEREFERENCE) {
-		ei->r = getgpr();
+		ei->r = NULL;
+		/*ei->r = getgpr();
 		occupy(ei->r);
-		write_instr(ofile, "mov", 2, ei->r, e.asme);
+		write_instr(ofile, "mov", 2, ei->r, e.asme);*/
 	}
 	ei->pushed = 0;
 	if (e.asme->ty == REGISTER) {
@@ -212,7 +238,11 @@ struct expression unpack(void * p)
 		return unpacktogpr(p);
 	}
 	if (ei->e.asme->ty == DEREFERENCE) {
-		expr.asme = ei->r;
+		if (ei->r) {
+			expr.asme = ei->r;
+		} else {
+			expr.asme = ei->e.asme;
+		}
 		expr.type = ei->e.type;
 		removefromlist(&packed, p);
 		return expr;
@@ -282,7 +312,12 @@ struct expression unpacktogpr(void * p)
 		return expr;
 	}
 	if (ei->e.asme->ty == DEREFERENCE) {
-		expr.asme = ei->r;
+		if (ei->r) {
+			expr.asme = ei->r;
+		} else {
+			expr.asme = getgpr();
+			write_instr(ofile, "mov", 2, expr.asme, ei->e.asme);
+		}
 		expr.type = ei->e.type;
 		removefromlist(&packed, p);
 		return expr;
@@ -299,6 +334,10 @@ struct expression unpacktogpr(void * p)
 
 struct expression unpacktogprea(void * p)
 {
+	struct expr_internal * ei = p;
+	if (ei->e.asme->ty == DEREFERENCE && !ei->pushed && !ei->r) {
+		return ei->e;
+	}
 	return unpacktogpr(p);
 }
 

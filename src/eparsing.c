@@ -282,7 +282,11 @@ static void * parse_bop(
 		unshield_all();
 		l = unpacklvalue(left);
 		r = unpacktorvalue(right);
+		shield(r.asme);
 		cloggflags();
+		if (l.asme->ty == DEREFERENCE) {
+			cloggmem(l.asme);
+		}
 		write_instr(ofile, "mov", 2, l.asme, r.asme);
 		
 		unshield_all();
