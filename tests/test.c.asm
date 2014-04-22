@@ -15,20 +15,17 @@ section .bss
 d:
 	resb 2
 
+ptr:
+	resb 200
+
 section .text
 foo:
 	push bp
 	mov bp, sp
-
-.L0.0:
-	cmp word [a], word [ss:bp + 4]
-	je .L0.1
-	mov ax, word [a]
-	add ax, 1
-	mov word [a], ax
-	jmp .L0.0
-
-.L0.1:
+	mov bx, word [ptr]
+	add bx, word [a]
+	mov ax, word [b]
+	mov word [bx], ax
 	pop bp
 	ret
 
@@ -43,7 +40,8 @@ bar:
 	mov word [a], ax
 
 .L0.1:
-	cmp word [a], word [ss:bp + 4]
+	mov ax, word [ss:bp + 4]
+	cmp word [a], ax
 	jne .L0.0
 
 .L0.2:
@@ -56,7 +54,8 @@ quux:
 	mov word [a], 0
 
 .L0.0:
-	cmp word [a], word [ss:bp + 4]
+	mov ax, word [ss:bp + 4]
+	cmp word [a], ax
 	je .L0.3
 	jmp .L0.2
 

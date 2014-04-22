@@ -264,10 +264,14 @@ struct expression unpacklvalue(void * p)
 	return expr;
 }
 
-struct expression unpacktorvalue(void * p)
+struct expression unpacktorvalue(void * p, struct expression e)
 {
 	struct expr_internal * ei = p;
 	if (ei->e.asme->ty == FLAG) {
+		return unpacktogpr(p);
+	}
+	if (e.asme->ty == DEREFERENCE && ei->e.asme->ty == DEREFERENCE
+		&& !ei->pushed && !ei->r) {
 		return unpacktogpr(p);
 	}
 	return unpack(p);

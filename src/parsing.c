@@ -76,6 +76,8 @@ static int gettok_opc(int ch)
 	switch (ch) {
 	case '(':
 	case ')':
+	case '[':
+	case ']':
 	case '{':
 	case '}':
 	case ',':

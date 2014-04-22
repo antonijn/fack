@@ -1,11 +1,10 @@
 
 int a = 0x1, b = 0x10, c = 0x100, d;
+int ptr[100];
 
 void foo(int end)
 {
-	while (a != end) {
-		a = a + 1;
-	}
+	ptr[a] = b;
 }
 
 void bar(int end)

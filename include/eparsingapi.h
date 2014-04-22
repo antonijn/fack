@@ -45,7 +45,7 @@ struct expression unpacktogprea(void * p);
 /*
  * Unpacks an expression into an rvalue.
  */
-struct expression unpacktorvalue(void * p);
+struct expression unpacktorvalue(void * p, struct expression e);
 
 /*
  * Unpacks an expression into the flags register, so it's

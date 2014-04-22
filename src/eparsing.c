@@ -53,6 +53,10 @@ static void * parse_id(
 	
 	if (!loc) {
 		struct cglobal * g = (struct cglobal *)getvar(token.str, &globals);
+		if (!g) {
+			fprintf(stderr, "error: invalid identifier '%s'\n", token.str);
+		}
+		
 		res.asme = (struct asmexpression *)
 		    new_ea8086(NULL, NULL, NULL, (struct asmexpression *)g->label, g->type->size, 0);
 		res.type = g->type;
@@ -198,7 +202,7 @@ static void * parse_bop(
 		unshield_all();
 		l = unpacktogprea(left);
 		shield(l.asme);
-		r = unpacktorvalue(right);
+		r = unpacktorvalue(right, l);
 		cloggflags();
 		write_instr(ofile, "cmp", 2, l.asme, r.asme);
 		
@@ -212,7 +216,7 @@ static void * parse_bop(
 		unshield_all();
 		l = unpacktogprea(left);
 		shield(l.asme);
-		r = unpacktorvalue(right);
+		r = unpacktorvalue(right, l);
 		cloggflags();
 		write_instr(ofile, "cmp", 2, l.asme, r.asme);
 		
@@ -226,7 +230,7 @@ static void * parse_bop(
 		unshield_all();
 		l = unpacktogprea(left);
 		shield(l.asme);
-		r = unpacktorvalue(right);
+		r = unpacktorvalue(right, l);
 		cloggflags();
 		write_instr(ofile, "cmp", 2, l.asme, r.asme);
 		
@@ -240,7 +244,7 @@ static void * parse_bop(
 		unshield_all();
 		l = unpacktogprea(left);
 		shield(l.asme);
-		r = unpacktorvalue(right);
+		r = unpacktorvalue(right, l);
 		cloggflags();
 		write_instr(ofile, "cmp", 2, l.asme, r.asme);
 		
@@ -254,7 +258,7 @@ static void * parse_bop(
 		unshield_all();
 		l = unpacktogprea(left);
 		shield(l.asme);
-		r = unpacktorvalue(right);
+		r = unpacktorvalue(right, l);
 		cloggflags();
 		write_instr(ofile, "cmp", 2, l.asme, r.asme);
 		
@@ -268,7 +272,7 @@ static void * parse_bop(
 		unshield_all();
 		l = unpacktogprea(left);
 		shield(l.asme);
-		r = unpacktorvalue(right);
+		r = unpacktorvalue(right, l);
 		cloggflags();
 		write_instr(ofile, "cmp", 2, l.asme, r.asme);
 		
@@ -281,7 +285,7 @@ static void * parse_bop(
 		struct expression l, r;
 		unshield_all();
 		l = unpacklvalue(left);
-		r = unpacktorvalue(right);
+		r = unpacktorvalue(right, l);
 		shield(r.asme);
 		cloggflags();
 		if (l.asme->ty == DEREFERENCE) {
@@ -299,7 +303,7 @@ static void * parse_bop(
 		unshield_all();
 		l = unpacktogpr(left);
 		shield(l.asme);
-		r = unpacktorvalue(right);
+		r = unpacktorvalue(right, l);
 		cloggflags();
 		write_instr(ofile, "add", 2, l.asme, r.asme);
 		
@@ -313,7 +317,7 @@ static void * parse_bop(
 		unshield_all();
 		l = unpacktogpr(left);
 		shield(l.asme);
-		r = unpacktorvalue(right);
+		r = unpacktorvalue(right, l);
 		cloggflags();
 		write_instr(ofile, "sub", 2, l.asme, r.asme);
 		
@@ -432,6 +436,28 @@ static void * eparser_r(
 		if (!strcmp(token.str, "(")) {
 			gettok(file);
 			left = eparser_r(file, ofile, NULL, noop, vars);
+			gettok(file);
+			left = eparser_r(file, ofile, left, lastop, vars);
+		} else if (!strcmp(token.str, "[")) {
+			void * idx;
+			struct expression l, r, ea;
+			
+			gettok(file);
+			idx = eparser_r(file, ofile, NULL, noop, vars);
+			
+			shield_all();
+			unshield(&bx);
+			l = unpacktogpr(left);
+			unshield_all();
+			shield(&bx);
+			r = unpacktorvalue(idx, l);
+			write_instr(ofile, "add", 2, &bx, r.asme);
+			ea.type = ((struct cpointer *)l.type)->type;
+			ea.asme = new_ea8086(NULL, &bx, NULL, NULL, ea.type->size, 0);
+			unshield_all();
+			
+			left = pack(ea);
+			
 			gettok(file);
 			left = eparser_r(file, ofile, left, lastop, vars);
 		}

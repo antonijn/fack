@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <eparsingapi.h>
 
 struct list functions;
 struct list types;
@@ -261,7 +262,8 @@ int fparse_afterty(FILE * file, struct ctype * ty)
 	/* next token: ';', '=' => var, '(' => func*/
 	gettok(file);
 	
-	if (token.str[0] == ';' || token.str[0] == '=' || token.str[0] == ',') {
+	if (token.str[0] == ';' || token.str[0] == '=' || token.str[0] == ',' ||
+	    token.str[0] == '[') {
 		
 		/* TODO: var init vals */
 		
@@ -283,13 +285,34 @@ int fparse_afterty(FILE * file, struct ctype * ty)
 			enter_exprenv(ofile);
 			
 			right = eparser(file, ofile, &livars);
-			write_dx(ofile, ty->size, unpack(right));
+			write_dx(ofile, ty->size, unpack(right).asme);
 			
 			leave_exprenv();
+		} else if (token.str[0] == '[') {
+			void * count;
+			struct list livars;
+			struct expression e;
+			
+			ty = new_cpointer(ty);
+			g->type = ty;
+			
+			livars = new_list(1);
+			gettok(file);
+			enter_exprenv(ofile);
+			
+			count = eparser(file, ofile, &livars);
+			gettok(file);
+			
+			e = unpack(count);
+			to_section(ofile, ".bss");
+			write_label(ofile, g->label);
+			write_resb(ofile, ty->size * *((struct immediate *)e.asme)->value);
+			
+			leave_exprenv();
+			
 		} else {
 			to_section(ofile, ".bss");
 			write_label(ofile, g->label);
-			
 			write_resb(ofile, ty->size);
 		}
 		
