@@ -220,6 +220,11 @@ static void sparser_asm(FILE * file, FILE * ofile)
 	}
 	
 	while ((ch = getc(file)) != stopc) {
+		++_column;
+		if (ch == '\n') {
+			++_linenum;
+			_column = 0;
+		}
 		if (!lastcc || ch > ' ') {
 			if (ch == '\n') {
 				lastcc = 1;
@@ -272,9 +277,65 @@ static void sparser_stat(FILE * file, FILE * ofile, struct list * vars)
 	}
 }
 
+static int _sdepth = 0;
+
+void sparse_afterty(FILE * file, FILE * ofile, struct list * vars, struct ctype * ty)
+{
+	char * id = malloc(token.len + 1);
+	struct clocal * g;
+	memcpy(id, token.str, token.len + 1);
+	
+	g = new_local(ty, id, -_sdepth - ty->size);
+	free(id);
+	
+	gettok(file);
+	if (token.str[0] == '=') {
+		/*void * right;
+		struct list livars;
+		struct expression e;
+		
+		gettok(file);
+		enter_exprenv(ofile);
+		
+		right = eparser(file, ofile, &livars);
+		write_dx(ofile, ty->size, 1, unpack(right).asme);
+		
+		leave_exprenv();*/
+	} else if (token.str[0] == '[') {
+		void * count;
+		struct ctype * tyb = ty;
+		
+		ty = new_cpointer(ty);
+		g->type = ty;
+		
+		gettok(file);
+		enter_exprenv(ofile);
+		
+		count = eparser(file, ofile, vars);
+		gettok(file);
+		
+		leave_exprenv();
+		
+		_sdepth += tyb->size * *((struct immediate *)unpack(count).asme)->value;
+		g->isarray = 1;
+		
+	} else {
+		_sdepth += ty->size;
+	}
+	
+	add(vars, (void *)g, (void (*)(void *))g->cleanup);
+	
+	if (token.str[0] == ',') {
+		/* advance to next id */
+		gettok(file);
+		sparse_afterty(file, ofile, vars, ty);
+	}
+}
+
 void sparser_body(FILE * file, FILE * ofile, struct list * vars)
 {
 	int vc = vars->count;
+	int sdbackup = _sdepth;
 	
 	++scope;
 	asm_enter_block();
@@ -282,6 +343,19 @@ void sparser_body(FILE * file, FILE * ofile, struct list * vars)
 	if (token.str[0] != '{') {
 		showerror(stderr, "error", "unexpected token %s", token.str);
 	}
+	
+	while (1) {
+		struct ctype * ct;
+		
+		ct = f_readty(file, NULL);
+		if (!ct) {
+			fseek(file, -token.len, SEEK_CUR);
+			break;
+		}
+		sparse_afterty(file, ofile, vars,ct);
+	}
+	
+	growstack(ofile, _sdepth - sdbackup);
 	
 	while (1)
 	{
@@ -293,6 +367,10 @@ void sparser_body(FILE * file, FILE * ofile, struct list * vars)
 	}
 	
 	removelast(vars, vars->count - vc);
+	
+	shrinkstack(ofile, _sdepth - sdbackup);
+	
+	_sdepth = sdbackup;
 	
 	asm_leave_block();
 	--scope;

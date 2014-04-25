@@ -20,6 +20,9 @@ extern enum machine target;
 extern const char * outfile;
 extern const char * filenames[32];
 
+extern int _linenum;
+extern int _column;
+
 void showerror(FILE * f, const char * type, const char * frmt, ...);
 
 #endif

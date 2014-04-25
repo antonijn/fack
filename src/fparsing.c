@@ -142,6 +142,7 @@ struct clocal * new_local(struct ctype * type, char * id, int stack_offset)
 	res->id = malloc(idl + 1);
 	memcpy(res->id, id, idl + 1);
 	res->stack_offset = stack_offset;
+	res->isarray = 0;
 	return res;
 }
 struct cparam * new_param(struct ctype * type, char * id, int stack_offset)
@@ -179,7 +180,7 @@ struct cfunction * new_function(struct ctype * ret, char * id)
 }
 
 /* leaves token at identifier */
-static struct ctype * f_readty(FILE * file, struct ctype * prev)
+struct ctype * f_readty(FILE * file, struct ctype * prev)
 {
 	gettok(file);
 	
@@ -284,8 +285,7 @@ int fparse_afterty(FILE * file, struct ctype * ty)
 	char * id;
 	
 	id = malloc(token.len + 1);
-	id[token.len] = '\0';
-	memcpy(id, token.str, token.len);
+	memcpy(id, token.str, token.len + 1);
 	
 	/* next token: ';', '=' => var, '(' => func*/
 	gettok(file);

@@ -26,9 +26,16 @@ void leave13h()
 	}
 }
 
-int main(int e, int b)
+int main()
 {
-	enter13h();
+	int i;
+	int a[10];
 	
+	for (i = 0; i < 10; i = i + 1) {
+		int b;
+		b = a[i];
+	}
+	
+	enter13h();
 	leave13h();
 }

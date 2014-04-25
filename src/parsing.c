@@ -8,8 +8,8 @@
 #include <stdarg.h>
 
 static const char * _fname;
-static int _linenum;
-static int _column;
+int _linenum;
+int _column;
 
 void showerror(FILE * f, const char * type, const char * frmt, ...)
 {
@@ -39,6 +39,10 @@ void parse(const char * filename)
 	
 	ifile = fopen(filename, "rb");
 	ofile = fopen(ofname, "wb");
+	
+	_fname = filename;
+	_linenum = 1;
+	_column = -1;
 	
 	fparser_init(ofile);
 	while (!fparse_element(ifile))
@@ -115,6 +119,7 @@ static void gettok_id(FILE * file)
 	
 	token.ty = IDENTIFIER;
 	while ((ch = getc(file)) != EOF && gettok_idcc(ch)) {
+		++_column;
 		token.str[token.len++] = ch;
 	}
 	ungetc(ch, file);
@@ -149,10 +154,13 @@ static void gettok_num(FILE * file)
 {
 	int ch = getc(file);
 	int nb = 10;
+	
+	++_column;
 	token.str[token.len++] = ch;
 	
 	if (ch == '0') {
 		ch = getc(file);
+		++_column;
 		token.str[token.len++] = ch;
 		switch (ch) {
 		case 'x':
@@ -165,16 +173,19 @@ static void gettok_num(FILE * file)
 			nb = 8;
 			ungetc(ch, file);
 			--token.len;
+			--_column;
 			break;
 		}
 	}
 	
 	do {
 		ch = getc(file);
+		++_column;
 		token.str[token.len++] = ch;
 	} while (gettok_hexc(ch));
 	ungetc(ch, file);
 	--token.len;
+	--_column;
 	if (nb == 8 && token.len == 1) {
 		nb = 10; /* zero */
 	}
@@ -200,6 +211,7 @@ static void gettok_aop(FILE * file)
 	int chpr = 0;
 	int ch = getc(file);
 	token.ty = OPERATOR;
+	++_column;
 	token.str[token.len++] = ch;
 	if (gettok_aopc(ch)) {
 		ch = getc(file);
@@ -208,6 +220,11 @@ static void gettok_aop(FILE * file)
 				while (chpr != '*' || ch != '/') {
 					chpr = ch;
 					ch = getc(file);
+					++_column;
+					if (ch == '\n') {
+						++_linenum;
+						_column = 0;
+					}
 				}
 				gettok(file);
 				return;
@@ -217,6 +234,7 @@ static void gettok_aop(FILE * file)
 		if (ch != '=') {
 			ungetc(ch, file);
 		} else {
+			++_column;
 			token.str[token.len++] = ch;
 		}
 	}
@@ -226,6 +244,7 @@ static void gettok_opo(FILE * file)
 {
 	int ch = getc(file);
 	token.ty = OPERATOID;
+	++_column;
 	token.str[token.len++] = ch;
 }
 
@@ -236,6 +255,11 @@ void gettok(FILE * file)
 	int ch;
 	/* skip spaces, newlines and other guff */
 	while ((ch = getc(file)) <= 0x20) {
+		++_column;
+		if (ch == '\n') {
+			++_linenum;
+			_column = 0;
+		}
 		if (ch == EOF) {
 			token.ty = STOP;
 			return;
@@ -260,6 +284,7 @@ void gettok(FILE * file)
 		token.ty = SEMICOLON;
 		token.str[0] = getc(file);
 		token.len = 1;
+		++_column;
 		return;
 	}
 	

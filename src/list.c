@@ -55,7 +55,7 @@ void removelast(struct list * l, size_t cnt)
 {
 	int i;
 	for (i = 0; i < cnt; ++i) {
-		struct lelement le = l->elements[l->count - i - 1];
+		struct lelement le = l->elements[--l->count];
 		if (!le.cleanup) {
 			continue;
 		}

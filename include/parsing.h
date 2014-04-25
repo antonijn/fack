@@ -119,6 +119,7 @@ struct clocal {
 	struct ctype * type;
 	char * id;
 	int stack_offset;
+	int isarray;
 };
 
 struct cparam {
@@ -190,5 +191,7 @@ void printreginfo(void);
 size_t stackdepth(void);
 void growstack(FILE * f, size_t x);
 void shrinkstack(FILE * f, size_t x);
+
+struct ctype * f_readty(FILE * file, struct ctype * prev);
 
 #endif
