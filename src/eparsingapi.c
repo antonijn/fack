@@ -234,6 +234,10 @@ struct expression unpack(void * p)
 {
 	struct expression expr;
 	struct expr_internal * ei = p;
+	if (!p) {
+		return expr;
+	}
+	
 	if (ei->pushed) {
 		return unpacktogpr(p);
 	}
