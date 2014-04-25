@@ -93,7 +93,7 @@ static void * parse_id(
 		return eparser_r(file, ofile, pack(res), lastop, vars);
 	}
 	
-	so = (struct asmexpression *)new_imm(loc->stack_offset + stackdepth());
+	so = (struct asmexpression *)new_imm(loc->stack_offset);
 	res.asme = (struct asmexpression *)new_ea8086(&ss, &bp, NULL, so, loc->type->size, 1);
 	res.type = loc->type;
 	gettok(file);
@@ -456,12 +456,13 @@ static void * eparser_fcall(
 		struct ctype * paramty;
 		
 		paramty = fptr->paramtypes->elements[i++].element;
+		depth += paramty->size;
 		
 		param = eparser(file, ofile, vars);
 		strcpy(tokencpy, token.str);
 		gettok(file);
 		
-		bpoffs = stackdepth() - depth;
+		bpoffs = -depth;
 		offs = new_imm(bpoffs);
 		pea = new_ea8086(&ss, &bp, NULL, offs, paramty->size <= 2 ? 2 : paramty->size, 1);
 		
@@ -471,7 +472,6 @@ static void * eparser_fcall(
 		write_instr(ofile, "mov", 2, pea, parame.asme);
 		
 		pea->cleanup(pea);
-		depth += paramty->size;
 	}
 	
 	cloggall();

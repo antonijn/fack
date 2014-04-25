@@ -10,10 +10,10 @@ main:
 	push bp
 	mov bp, sp
 	sub sp, 4
-	mov ax, word [ss:bp + 10]
-	mov word [ss:bp + 4], ax
-	mov ax, word [ss:bp + 8]
-	mov word [ss:bp + 2], ax
+	mov ax, word [ss:bp + 6]
+	mov word [ss:bp + -2], ax
+	mov ax, word [ss:bp + 4]
+	mov word [ss:bp + -4], ax
 	call main
 	add sp, 4
 	pop bp
