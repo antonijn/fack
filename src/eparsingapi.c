@@ -1,5 +1,6 @@
 #include <eparsingapi.h>
 #include <stdlib.h>
+#include <options.h>
 
 struct expr_internal {
 	struct expression e;
@@ -24,9 +25,19 @@ static struct reginfo regs[] = {
 	{ &dx, 0, 0 },
 	{ &si, 0, 0 },
 	{ &di, 0, 0 },
+	
+	{ &al, 0, 0 },
+	{ &bl, 0, 0 },
+	{ &cl, 0, 0 },
+	{ &dl, 0, 0 },
+	
+	{ &ah, 0, 0 },
+	{ &bh, 0, 0 },
+	{ &ch, 0, 0 },
+	{ &dh, 0, 0 },
 };
 
-#define REGS_COUNT 6
+#define REGS_COUNT 14
 
 void printreginfo(void)
 {
@@ -49,6 +60,13 @@ int packedinflags(void * p)
 static void occupy(struct reg * r)
 {
 	int i;
+	if (r->arch != INTEL_80386 &&
+		target == INTEL_8086) {
+		return;
+	}
+	if (r->parent) {
+		occupy(r->parent);
+	}
 	for (i = 0; i < REGS_COUNT; ++i) {
 		if (regs[i].r == r) {
 			regs[i].occupied = 1;
@@ -60,6 +78,16 @@ static void occupy(struct reg * r)
 static void freereg(struct reg * r)
 {
 	int i;
+	if (!r) {
+		return;
+	}
+	if (r->arch != INTEL_80386 &&
+		target == INTEL_8086) {
+		return;
+	}
+	if (r->parent) {
+		freereg(r->parent);
+	}
 	for (i = 0; i < REGS_COUNT; ++i) {
 		if (regs[i].r == r) {
 			regs[i].occupied = 0;
@@ -104,7 +132,7 @@ void leave_exprenv(void)
 	freelist(&packed);
 }
 
-struct reg * getgpr(void)
+struct reg * getgpr(size_t sz)
 {
 	int i;
 	
@@ -112,13 +140,13 @@ struct reg * getgpr(void)
 	print_regs();*/
 	
 	for (i = 0; i < REGS_COUNT; ++i) {
-		if (isavailable(regs[i].r)) {
+		if (isavailable(regs[i].r) && regs[i].r->size == sz) {
 			return regs[i].r;
 		}
 	}
 	
 	for (i = 0; i < REGS_COUNT; ++i) {
-		if (!isshielded(regs[i].r)) {
+		if (!isshielded(regs[i].r) && regs[i].r->size == sz) {
 			clogg(regs[i].r);
 			return regs[i].r;
 		}
@@ -128,6 +156,14 @@ struct reg * getgpr(void)
 void clogg(struct reg * r)
 {
 	int i;
+	if (r->arch != INTEL_80386 &&
+		target == INTEL_8086) {
+		return;
+	}
+	if (r->parent) {
+		clogg(r->parent);
+	}
+	
 	for (i = 0; i < packed.count; ++i) {
 		struct expr_internal * ei = packed.elements[i].element;
 		if (!ei->pushed) {
@@ -174,7 +210,7 @@ void cloggmem(struct effective_address8086 * ea)
 		struct expr_internal * ei = packed.elements[i].element;
 		/* reference equality for now */
 		if (ei->e.asme == ea && !ei->r && !ei->pushed) {
-			ei->r = getgpr();
+			ei->r = getgpr(ei->e.type->size);
 			occupy(ei->r);
 			write_instr(ofile, "mov", 2, ei->r, ei->e.asme);
 			return;
@@ -191,7 +227,7 @@ void cloggflags(void)
 			struct immediate * skip;
 			struct reg * gpr;
 			
-			gpr = getgpr();
+			gpr = getgpr(2);
 			
 			skip = get_tmp_label();
 			
@@ -328,7 +364,7 @@ struct expression unpacktogpr(void * p)
 	struct expression expr;
 	struct expr_internal * ei = p;
 	if (ei->pushed) {
-		expr.asme = getgpr();
+		expr.asme = getgpr(ei->e.type->size);
 		expr.type = ei->e.type;
 		write_instr(ofile, "pop", 1, expr.asme); /* temporary bad code */
 		removefromlist(&packed, p);
@@ -337,7 +373,7 @@ struct expression unpacktogpr(void * p)
 	if (ei->e.asme->ty == FLAG) {
 		struct immediate * skip;
 		
-		expr.asme = getgpr();
+		expr.asme = getgpr(ei->e.type->size);
 		expr.type = ei->e.type;
 		
 		skip = get_tmp_label();
@@ -355,7 +391,7 @@ struct expression unpacktogpr(void * p)
 	if (ei->e.asme->ty == REGISTER) {
 		expr = ei->e;
 		if (isshielded(expr.asme)) {
-			expr.asme = getgpr();
+			expr.asme = getgpr(expr.type->size);
 			write_instr(ofile, "mov", 2, expr.asme, ei->e.asme);
 		}
 		removefromlist(&packed, p);
@@ -366,14 +402,14 @@ struct expression unpacktogpr(void * p)
 		if (ei->r) {
 			expr.asme = ei->r;
 		} else {
-			expr.asme = getgpr();
+			expr.asme = getgpr(ei->e.type->size);
 			write_instr(ofile, "mov", 2, expr.asme, ei->e.asme);
 		}
 		expr.type = ei->e.type;
 		removefromlist(&packed, p);
 		return expr;
 	}
-	expr.asme = getgpr();
+	expr.asme = getgpr(ei->e.type->size);
 	expr.type = ei->e.type;
 	write_instr(ofile, "mov", 2, expr.asme, ei->e.asme);
 	if (expr.asme->ty != IMMEDIATE)

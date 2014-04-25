@@ -99,7 +99,7 @@ static void * parse_id(
 	so = (struct asmexpression *)new_imm(loc->stack_offset);
 	res.asme = (struct asmexpression *)new_ea8086(&ss, &bp, NULL, so, loc->type->size, 1);
 	if (loc->isarray) {
-		so = getgpr();
+		so = getgpr(loc->type->size);
 		write_instr(ofile, "lea", 2, so, res.asme);
 		res.asme = so;
 	}
@@ -258,11 +258,11 @@ static void * parse_deref(
 		unshield(&bx);
 		unshield(&si);
 		unshield(&di);
-		res.asme = getgpr();
+		res.type = ((struct cpointer *)r.type)->type;
+		res.asme = getgpr(res.type->size);
 		if (res.asme != r.asme) {
 			write_instr(ofile, "mov", 2, res.asme, r.asme);
 		}
-		res.type = ((struct cpointer *)r.type)->type;
 		unshield_all();
 		
 		res.asme = new_ea8086(NULL, res.asme, NULL, NULL, res.type->size, 0);
@@ -363,7 +363,7 @@ static void * parse_uop(
 		r = unpack(right);
 		if (r.asme->ty == DEREFERENCE) {
 			unshield_all();
-			res.asme = getgpr();
+			res.asme = getgpr(r.type->size);
 			res.type = r.type;
 			
 			write_instr(ofile, "lea", 2, res.asme, r.asme);
@@ -390,11 +390,13 @@ static void * parse_mul(
 	unshield_all();
 	shield(&ax);
 	r = unpacktogprea(right);
-	clogg(&dx);
+	if (l.type->size >= 2 || r.type->size >= 2) {
+		clogg(&dx);
+	}
 	write_instr(ofile, "mul", 1, r.asme);
 	
 	unshield_all();
-	res.asme = &ax;
+	res.asme = (l.type->size >= 2 || r.type->size >= 2) ? &ax : &al;
 	res.type = l.type;
 	return pack(res);
 }
@@ -500,7 +502,7 @@ static void * parse_bop(
 		struct expression r;
 		unshield_all();
 		r = unpacklvalue(left);
-		res.asme = getgpr();
+		res.asme = getgpr(r.type->size);
 		write_instr(ofile, "mov", 2, res.asme, r.asme);
 		write_instr(ofile, "inc", 1, r.asme);
 		
@@ -512,7 +514,7 @@ static void * parse_bop(
 		struct expression r;
 		unshield_all();
 		r = unpacklvalue(left);
-		res.asme = getgpr();
+		res.asme = getgpr(r.type->size);
 		write_instr(ofile, "mov", 2, res.asme, r.asme);
 		write_instr(ofile, "dec", 1, r.asme);
 		

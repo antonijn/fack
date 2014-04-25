@@ -60,7 +60,7 @@ struct expression unpacktoflags(void * p);
  * or cloggs one if none are clean.
  * Won't return registers marked as forbidden by disallow_gpr.
  */
-struct reg * getgpr(void);
+struct reg * getgpr(size_t sz);
 
 /*
  * Cloggs an effective address.

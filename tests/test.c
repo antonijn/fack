@@ -1,5 +1,5 @@
 
-int arr[100];
+int img[9];
 
 void * mode;
 
@@ -30,13 +30,6 @@ void leave13h()
 
 int main()
 {
-	int i;
-	int a[10];
-	
-	for (i = 0; i < 10; ++i) {
-		a[i] = *(arr + i);
-	}
-	
-	enter13h();
-	leave13h();
+	char i, j;
+	i = i * j;
 }
