@@ -240,6 +240,37 @@ static struct operator get_unop(char * str)
 	return res;
 }
 
+static void * parse_deref(
+	void * right,
+	FILE * ofile)
+{
+	struct expression res, r;
+	unshield_all();
+	r = unpack(right);
+
+	if (r.asme->ty == IMMEDIATE) {
+		
+		res.type = ((struct cpointer *)r.type)->type;
+		res.asme = new_ea8086(NULL, NULL, NULL, r.asme, res.type->size, 0);
+		
+	} else {
+		shield_all();
+		unshield(&bx);
+		unshield(&si);
+		unshield(&di);
+		res.asme = getgpr();
+		if (res.asme != r.asme) {
+			write_instr(ofile, "mov", 2, res.asme, r.asme);
+		}
+		res.type = ((struct cpointer *)r.type)->type;
+		unshield_all();
+		
+		res.asme = new_ea8086(NULL, res.asme, NULL, NULL, res.type->size, 0);
+	}
+
+	return pack(res);
+}
+
 static void * parse_uop(
 	FILE * file, FILE * ofile,
 	void * left,
@@ -247,7 +278,7 @@ static void * parse_uop(
 	struct list * vars)
 {
 	char opstr[token.len + 1];
-	void * right;
+	void * right, * pres;
 	struct expression res;
 	struct operator op = get_unop(token.str);
 	
@@ -268,6 +299,7 @@ static void * parse_uop(
 		write_instr(ofile, "inc", 1, r.asme);
 		
 		res = r;
+		pres = pack(res);
 		
 	} else if (!strcmp(opstr, "--")) {
 		
@@ -277,6 +309,7 @@ static void * parse_uop(
 		write_instr(ofile, "dec", 1, r.asme);
 		
 		res = r;
+		pres = pack(res);
 		
 	} else if (!strcmp(opstr, "-")) {
 		
@@ -286,6 +319,7 @@ static void * parse_uop(
 		write_instr(ofile, "neg", 1, r.asme);
 		
 		res = r;
+		pres = pack(res);
 		
 	} else if (!strcmp(opstr, "!")) {
 		
@@ -306,6 +340,7 @@ static void * parse_uop(
 			res.type = r.type;
 			
 		}
+		pres = pack(res);
 		
 	} else if (!strcmp(opstr, "~")) {
 		
@@ -319,6 +354,8 @@ static void * parse_uop(
 		
 		imm->cleanup(imm);
 		
+		pres = pack(res);
+		
 	} else if (!strcmp(opstr, "&")) {
 		
 		struct expression r;
@@ -331,26 +368,105 @@ static void * parse_uop(
 			
 			write_instr(ofile, "lea", 2, res.asme, r.asme);
 		}
+		pres = pack(res);
+		
 	} else if (!strcmp(opstr, "*")) {
 		
-		struct expression r;
-		unshield_all();
-		r = unpack(right);
-		if (r.asme->ty == DEREFERENCE) {
-			shield_all();
-			unshield(&bx);
-			unshield(&si);
-			unshield(&di);
-			res.asme = getgpr();
-			res.type = ((struct cpointer *)r.type)->type;
-			unshield_all();
-			
-			write_instr(ofile, "mov", 2, res.asme, r.asme);
-			res.asme = new_ea8086(NULL, &bx, NULL, NULL, res.type->size, 0);
-		}
+		pres = parse_deref(right, ofile);
 	}
 	
-	return eparser_r(file, ofile, pack(res), op, vars);
+	return eparser_r(file, ofile, pres, op, vars);
+}
+
+static void * parse_mul(
+	void * left,
+	void * right,
+	FILE * ofile)
+{
+	struct expression res, l, r;
+	shield_all();
+	unshield(&ax);
+	l = unpacktogpr(left);
+	unshield_all();
+	shield(&ax);
+	r = unpacktogprea(right);
+	clogg(&dx);
+	write_instr(ofile, "mul", 1, r.asme);
+	
+	unshield_all();
+	res.asme = &ax;
+	res.type = l.type;
+	return pack(res);
+}
+
+static void * parse_sub_int(
+	void * left,
+	void * right,
+	FILE * ofile)
+{
+	struct expression res, l, r;
+	unshield_all();
+	l = unpacktogpr(left);
+	shield(l.asme);
+	r = unpacktorvalue(right, l);
+	cloggflags();
+	write_instr(ofile, "sub", 2, l.asme, r.asme);
+	
+	unshield_all();
+	res.asme = l.asme;
+	res.type = l.type;
+	return pack(res);
+}
+
+static void * parse_add_int(
+	void * left,
+	void * right,
+	FILE * ofile)
+{
+	struct expression res, l, r;
+	unshield_all();
+	l = unpacktogpr(left);
+	shield(l.asme);
+	r = unpacktorvalue(right, l);
+	cloggflags();
+	write_instr(ofile, "add", 2, l.asme, r.asme);
+	
+	unshield_all();
+	res.asme = l.asme;
+	res.type = l.type;
+	return pack(res);
+}
+
+static void * parse_sub(
+	void * left,
+	void * right,
+	FILE * ofile)
+{
+	struct expression res, l, r;
+	if (l.type->ty == POINTER) {
+		struct cpointer * cp = (struct cpointer *)l.type;
+		size_t s = cp->type->size;
+		l.asme = new_imm(s);
+		l.type = unpackty(right);
+		return parse_sub_int(left, parse_mul(right, pack(l), ofile), ofile);
+	}
+	return parse_sub_int(left, right, ofile);
+}
+
+static void * parse_add(
+	void * left,
+	void * right,
+	FILE * ofile)
+{
+	struct expression res, l, r;
+	if (unpackty(left)->ty == POINTER) {
+		struct cpointer * cp = (struct cpointer *)unpackty(left);
+		size_t s = cp->type->size;
+		res.asme = new_imm(s);
+		res.type = unpackty(right);
+		return parse_add_int(left, parse_mul(right, pack(res), ofile), ofile);
+	}
+	return parse_add_int(left, right, ofile);
 }
 
 static void * parse_bop(
@@ -362,6 +478,7 @@ static void * parse_bop(
 	char opstr[token.len + 1];
 	void * right;
 	struct expression res;
+	void * resp;
 	struct operator op = get_binop(token.str);
 	
 	if (op.prec >= lastop.prec) {
@@ -388,6 +505,7 @@ static void * parse_bop(
 		write_instr(ofile, "inc", 1, r.asme);
 		
 		res.type = r.type;
+		resp = pack(res);
 		
 	} else if (!strcmp(opstr, "--")) {
 		
@@ -399,6 +517,7 @@ static void * parse_bop(
 		write_instr(ofile, "dec", 1, r.asme);
 		
 		res.type = r.type;
+		resp = pack(res);
 		
 	} else if (!strcmp(opstr, "==")) {
 		
@@ -413,6 +532,7 @@ static void * parse_bop(
 		unshield_all();
 		res.asme = &f_e;
 		res.type = &_int;
+		resp = pack(res);
 		
 	} else if (!strcmp(opstr, "!=")) {
 		
@@ -427,6 +547,7 @@ static void * parse_bop(
 		unshield_all();
 		res.asme = &f_ne;
 		res.type = &_int;
+		resp = pack(res);
 		
 	} else if (!strcmp(opstr, ">")) {
 		
@@ -441,6 +562,7 @@ static void * parse_bop(
 		unshield_all();
 		res.asme = &f_g;
 		res.type = &_int;
+		resp = pack(res);
 		
 	} else if (!strcmp(opstr, ">=")) {
 		
@@ -455,6 +577,7 @@ static void * parse_bop(
 		unshield_all();
 		res.asme = &f_ge;
 		res.type = &_int;
+		resp = pack(res);
 		
 	} else if (!strcmp(opstr, "<")) {
 		
@@ -469,6 +592,7 @@ static void * parse_bop(
 		unshield_all();
 		res.asme = &f_l;
 		res.type = &_int;
+		resp = pack(res);
 		
 	} else if (!strcmp(opstr, "<=")) {
 		
@@ -483,6 +607,7 @@ static void * parse_bop(
 		unshield_all();
 		res.asme = &f_le;
 		res.type = &_int;
+		resp = pack(res);
 		
 	} else if (!strcmp(opstr, "=")) {
 		
@@ -500,50 +625,20 @@ static void * parse_bop(
 		unshield_all();
 		res.asme = l.asme;
 		res.type = l.type;
+		resp = pack(res);
 		
 	} else if (!strcmp(opstr, "+")) {
 		
-		struct expression l, r;
-		unshield_all();
-		l = unpacktogpr(left);
-		shield(l.asme);
-		r = unpacktorvalue(right, l);
-		cloggflags();
-		write_instr(ofile, "add", 2, l.asme, r.asme);
-		
-		unshield_all();
-		res.asme = l.asme;
-		res.type = l.type;
+		resp = parse_add(left, right, ofile);
 		
 	} else if (!strcmp(opstr, "-")) {
 		
-		struct expression l, r;
-		unshield_all();
-		l = unpacktogpr(left);
-		shield(l.asme);
-		r = unpacktorvalue(right, l);
-		cloggflags();
-		write_instr(ofile, "sub", 2, l.asme, r.asme);
-		
-		unshield_all();
-		res.asme = l.asme;
-		res.type = l.type;
+		resp = parse_sub(left, right, ofile);
 		
 	} else if (!strcmp(opstr, "*")) {
 		
-		struct expression l, r;
-		shield_all();
-		unshield(&ax);
-		l = unpacktogpr(left);
-		unshield_all();
-		shield(&ax);
-		r = unpacktogprea(right);
-		clogg(&dx);
-		write_instr(ofile, "mul", 1, r.asme);
+		resp = parse_mul(left, right, ofile);
 		
-		unshield_all();
-		res.asme = &ax;
-		res.type = l.type;
 	} else if (!strcmp(opstr, "/")) {
 		
 		struct expression l, r;
@@ -561,6 +656,7 @@ static void * parse_bop(
 		unshield_all();
 		res.asme = &ax;
 		res.type = l.type;
+		resp = pack(res);
 	} else if (!strcmp(opstr, "%")) {
 		
 		struct expression l, r;
@@ -578,9 +674,10 @@ static void * parse_bop(
 		unshield_all();
 		res.asme = &dx;
 		res.type = l.type;
+		resp = pack(res);
 	}
 	
-	return eparser_r(file, ofile, pack(res), noop, vars);
+	return eparser_r(file, ofile, resp, noop, vars);
 }
 
 static void * parse_intlit(
@@ -710,20 +807,7 @@ static void * eparser_r(
 			gettok(file);
 			idx = eparser_r(file, ofile, NULL, noop, vars);
 			
-			shield_all();
-			unshield(&bx);
-			unshield(&si);
-			unshield(&di);
-			l = unpacktogpr(left);
-			unshield_all();
-			shield(l.asme);
-			r = unpacktorvalue(idx, l);
-			write_instr(ofile, "add", 2, l.asme, r.asme);
-			ea.type = ((struct cpointer *)l.type)->type;
-			ea.asme = new_ea8086(NULL, l.asme, NULL, NULL, ea.type->size, 0);
-			unshield_all();
-			
-			left = pack(ea);
+			left = parse_deref(parse_add(left, idx, ofile), ofile);
 			
 			gettok(file);
 			left = eparser_r(file, ofile, left, lastop, vars);

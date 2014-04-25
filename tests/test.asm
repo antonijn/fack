@@ -59,10 +59,18 @@ main:
 
 .L0.2:
 	lea ax, word [ss:bp + -4]
-	mov bx, ax
-	add bx, word [ss:bp + -2]
-	mov si, arr
-	add si, word [ss:bp + -2]
+	push ax
+	mov ax, word [ss:bp + -2]
+	mov bx, 2
+	mul bx
+	pop bx
+	add bx, ax
+	mov ax, word [ss:bp + -2]
+	mov cx, 2
+	mul cx
+	mov cx, arr
+	add cx, ax
+	mov si, cx
 	mov ax, word [si]
 	mov word [bx], ax
 	jmp .L0.1

@@ -34,7 +34,7 @@ int main()
 	int a[10];
 	
 	for (i = 0; i < 10; ++i) {
-		a[i] = arr[i];
+		a[i] = *(arr + i);
 	}
 	
 	enter13h();

@@ -247,7 +247,8 @@ void * pack(struct expression e)
 	if (e.asme->ty == DEREFERENCE) {
 		ei->r = NULL;
 		ei->rlist = new_list(4);
-		if (((struct effective_address8086 *)e.asme)->base != &bp) {
+		if (((struct effective_address8086 *)e.asme)->base != &bp &&
+			((struct effective_address8086 *)e.asme)->base) {
 			struct expression pdre;
 			struct packedderefreg * pdr = malloc(sizeof(struct packedderefreg));
 			pdre.asme = ((struct effective_address8086 *)e.asme)->base;
