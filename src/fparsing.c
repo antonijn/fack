@@ -212,7 +212,7 @@ void fparse_func(FILE * file, struct ctype * ty, char * id)
 		/* ) char, for example */
 		if (!pty) {
 			if (token.str[0] != ')') {
-				fprintf(stderr, "error: unexpected token %s\n", token.str);
+				showerror(stderr, "error", "unexpected token %s", token.str);
 			}
 			break;
 		}
@@ -224,7 +224,7 @@ void fparse_func(FILE * file, struct ctype * ty, char * id)
 		/* go to , */
 		gettok(file);
 		if (token.str[0] != ',' && token.str[0] != ')') {
-			fprintf(stderr, "error: expected ','\n");
+			showerror(stderr, "error", "expected ','");
 		}
 		
 		param = new_param(pty, pid, stack_offset);
@@ -285,7 +285,7 @@ int fparse_afterty(FILE * file, struct ctype * ty)
 			enter_exprenv(ofile);
 			
 			right = eparser(file, ofile, &livars);
-			write_dx(ofile, ty->size, unpack(right).asme);
+			write_dx(ofile, ty->size, 1, unpack(right).asme);
 			
 			leave_exprenv();
 		} else if (token.str[0] == '[') {
@@ -328,7 +328,7 @@ int fparse_afterty(FILE * file, struct ctype * ty)
 		
 	} else if (token.str[0] != '(') {
 		free(id);
-		fprintf(stderr, "error: unexpected token %s\n", token.str);
+		showerror(stderr, "error", "unexpected token %s", token.str);
 		return 0;
 	}
 	

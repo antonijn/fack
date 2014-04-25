@@ -54,7 +54,7 @@ static void * parse_id(
 	if (!loc) {
 		struct cglobal * g = (struct cglobal *)getvar(token.str, &globals);
 		if (!g) {
-			fprintf(stderr, "error: invalid identifier '%s'\n", token.str);
+			showerror(stderr, "error", "invalid identifier '%s'", token.str);
 		}
 		
 		res.asme = (struct asmexpression *)

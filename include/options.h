@@ -1,6 +1,8 @@
 #ifndef OPTIONS_H
 #define OPTIONS_H
 
+#include <stdio.h>
+
 enum optimise {
 	O0,
 	O1,
@@ -17,5 +19,7 @@ extern enum optimise optimiseLevel;
 extern enum machine target;
 extern const char * outfile;
 extern const char * filenames[32];
+
+void showerror(FILE * f, const char * type, const char * frmt, ...);
 
 #endif

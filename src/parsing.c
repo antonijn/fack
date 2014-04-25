@@ -5,13 +5,36 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
+
+static const char * _fname;
+static int _linenum;
+static int _column;
+
+void showerror(FILE * f, const char * type, const char * frmt, ...)
+{
+	va_list ap;
+	va_start(ap, frmt);
+	fprintf(f, "%s:%d:%d: %s: ", _fname, _linenum, _column, type);
+	vfprintf(f, frmt, ap);
+	fprintf(f, "\n");
+	fflush(f);
+	va_end(ap);
+}
 
 void parse(const char * filename)
 {
 	FILE * ifile, * ofile;
+	size_t flen;
 	char ofname[64] = { 0 };
 	
+	flen = strlen(filename);
 	strcat(ofname, filename);
+	if (ofname[flen - 1] == 'c' &&
+	    ofname[flen - 2] == '.') {
+		
+		ofname[flen - 2] = '\0';
+	}
 	strcat(ofname, ".asm");
 	
 	ifile = fopen(filename, "rb");
@@ -174,11 +197,23 @@ static void gettok_num(FILE * file)
 
 static void gettok_aop(FILE * file)
 {
+	int chpr = 0;
 	int ch = getc(file);
 	token.ty = OPERATOR;
 	token.str[token.len++] = ch;
 	if (gettok_aopc(ch)) {
 		ch = getc(file);
+		if (token.str[0] == '/') {
+			if (ch == '*') {
+				while (chpr != '*' || ch != '/') {
+					chpr = ch;
+					ch = getc(file);
+				}
+				gettok(file);
+				return;
+			}
+		}
+		
 		if (ch != '=') {
 			ungetc(ch, file);
 		} else {
@@ -238,5 +273,5 @@ void gettok(FILE * file)
 		return;
 	}
 	
-	fprintf(stderr, "error: internal tokenisation error\n");
+	showerror(stderr, "error", "internal tokenisation error");
 }

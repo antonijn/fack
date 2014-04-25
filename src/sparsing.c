@@ -19,7 +19,7 @@ static void sparser_if(FILE * file, FILE * ofile, struct list * vars)
 	enter_exprenv(ofile);
 	gettok(file);
 	if (strcmp(token.str, "(")) {
-		fprintf(stderr, "error: expected '('\n");
+		showerror(stderr, "error", "expected '('");
 	}
 	gettok(file);
 	condpacked = eparser(file, ofile, vars);
@@ -30,7 +30,7 @@ static void sparser_if(FILE * file, FILE * ofile, struct list * vars)
 	
 	/* parse if body */
 	if (strcmp(token.str, ")")) {
-		fprintf(stderr, "error: expected ')'\n");
+		showerror(stderr, "error", "expected ')'");
 	}
 	gettok(file);
 	sparser_stat(file, ofile, vars);
@@ -71,7 +71,7 @@ static void sparser_for(FILE * file, FILE * ofile, struct list * vars)
 	/* first statement */
 	gettok(file);
 	if (strcmp(token.str, "(")) {
-		fprintf(stderr, "error: expected '('\n");
+		showerror(stderr, "error", "expected '('");
 	}
 	gettok(file);
 	sparser_stat(file, ofile, vars);
@@ -95,7 +95,7 @@ static void sparser_for(FILE * file, FILE * ofile, struct list * vars)
 	write_label(ofile, skipinc);
 	
 	if (strcmp(token.str, ")")) {
-		fprintf(stderr, "error: expected ')'\n");
+		showerror(stderr, "error", "expected ')'");
 	}
 	gettok(file);
 	sparser_stat(file, ofile, vars);
@@ -127,7 +127,7 @@ static void sparser_while(FILE * file, FILE * ofile, struct list * vars)
 	/* condition */
 	gettok(file);
 	if (strcmp(token.str, "(")) {
-		fprintf(stderr, "error: expected '('\n");
+		showerror(stderr, "error", "expected '('");
 	}
 	gettok(file);
 	enter_exprenv(ofile);
@@ -136,7 +136,7 @@ static void sparser_while(FILE * file, FILE * ofile, struct list * vars)
 	leave_exprenv();
 	
 	if (strcmp(token.str, ")")) {
-		fprintf(stderr, "error: expected ')'\n");
+		showerror(stderr, "error", "expected ')'");
 	}
 	gettok(file);
 	sparser_stat(file, ofile, vars);
@@ -172,11 +172,11 @@ static void sparser_do(FILE * file, FILE * ofile, struct list * vars)
 	/* condition */
 	gettok(file);
 	if (strcmp(token.str, "while")) {
-		fprintf(stderr, "error: expected 'while'\n");
+		showerror(stderr, "error", "expected 'while'");
 	}
 	gettok(file);
 	if (strcmp(token.str, "(")) {
-		fprintf(stderr, "error: expected '('\n");
+		showerror(stderr, "error", "expected '('");
 	}
 	gettok(file);
 	
@@ -186,11 +186,11 @@ static void sparser_do(FILE * file, FILE * ofile, struct list * vars)
 	leave_exprenv();
 	
 	if (strcmp(token.str, ")")) {
-		fprintf(stderr, "error: expected ')'\n");
+		showerror(stderr, "error", "expected ')'");
 	}
 	gettok(file);
 	if (strcmp(token.str, ";")) {
-		fprintf(stderr, "error: expected ';'\n");
+		showerror(stderr, "error", "expected ';'");
 	}
 	
 	write_label(ofile, break_label);
@@ -201,6 +201,38 @@ static void sparser_do(FILE * file, FILE * ofile, struct list * vars)
 	
 	continue_label = continuebackup;
 	break_label = breakbackup;
+}
+
+static void sparser_asm(FILE * file, FILE * ofile)
+{
+	char stopc;
+	int ch;
+	int lastcc = 0;
+	
+	gettok(file);
+	write_comment(ofile, 1, "begin user generated asm");
+	
+	stopc = strcmp(token.str, "{") ? ';' : '}';
+	
+	if (stopc == ';') {
+		fprintf(ofile, "\t%s", token.str);
+	}
+	
+	while ((ch = getc(file)) != stopc) {
+		if (!lastcc || ch > ' ') {
+			if (ch == '\n') {
+				lastcc = 1;
+				fprintf(ofile, "\n\t");
+				continue;
+			}
+			putc(ch, ofile);
+			lastcc = 0;
+		}
+	}
+	
+	write_comment(ofile, 1, "end user generated asm");
+	
+	/*gettok(file);*/
 }
 
 static void sparser_stat(FILE * file, FILE * ofile, struct list * vars)
@@ -225,6 +257,10 @@ static void sparser_stat(FILE * file, FILE * ofile, struct list * vars)
 		write_instr(ofile, "jmp", 1, continue_label);
 		gettok(file);
 		
+	} else if (!strcmp(token.str, "asm")) {
+		
+		sparser_asm(file, ofile);
+		
 	} else if (!strcmp(token.str, ";")) {
 		/*write_instr(ofile, "nop", 0);*/
 	} else {
@@ -243,7 +279,7 @@ void sparser_body(FILE * file, FILE * ofile, struct list * vars)
 	asm_enter_block();
 	
 	if (token.str[0] != '{') {
-		fprintf(stderr, "error: unexpected token %s\n", token.str);
+		showerror(stderr, "error", "unexpected token %s", token.str);
 	}
 	
 	while (1)

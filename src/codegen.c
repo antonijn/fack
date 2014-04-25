@@ -143,7 +143,7 @@ struct effective_address8086 * new_ea8086(struct reg * segment,
 		segment != &es &&
 		segment != &fs &&
 		segment != &gs) {
-		fprintf(stderr, "error: %s is not a segment register\n", segment->name);
+		showerror(stderr, "error", "%s is not a segment register", segment->name);
 	}
 	ea->tostring = &ea_tostring;
 	ea->segment = segment;
@@ -167,7 +167,7 @@ static void ea_tostring(FILE * f, struct effective_address8086 * ea)
 			fprintf(f, "dword");
 			break;
 		default:
-			fprintf(stderr, "error: invalid size\n");
+			showerror(stderr, "error", "invalid size");
 			break;
 	}
 	
@@ -213,7 +213,7 @@ static void imm_tostring(FILE * f, struct immediate * imm)
 static void reg_tostring(FILE * f, struct reg * r)
 {
 	if (r->arch == INTEL_80386 && target == INTEL_8086) {
-		fprintf(stderr, "error: %s is not available in 8086\n", r->name);
+		showerror(stderr, "error", "%s is not available in 8086", r->name);
 	}
 	fprintf(f, "%s", r->name);
 }
@@ -237,7 +237,7 @@ void write_instr(FILE * f, const char * instr, size_t ops, ...)
 	for (i = 0; i < ops; ++i) {
 		struct asmexpression * e = va_arg(ap, struct asmexpression *);
 		if (!e) {
-			fprintf(stderr, "error: assembly expression null\n");
+			showerror(stderr, "error", "assembly expression null");
 			continue;
 		}
 		e->tostring(f, e);
@@ -257,8 +257,11 @@ void to_section(FILE * f, const char * sec)
 	}
 }
 
-void write_dx(FILE * f, int dsize, struct immediate * imm)
+void write_dx(FILE * f, int dsize, int ac, ...)
 {
+	va_list ap;
+	int i;
+	
 	switch (dsize) {
 	case 1:
 		fprintf(f, "\tdd ");
@@ -273,8 +276,28 @@ void write_dx(FILE * f, int dsize, struct immediate * imm)
 		fprintf(f, "\tdq ");
 		break;
 	}
-	imm->tostring(f, imm);
+	
+	va_start(ap, ac);
+	for (i = 0; i < ac; ++i) {
+		struct immediate * e = va_arg(ap, struct immediate *);
+		e->tostring(f, e);
+		if (i != ac - 1) {
+			fprintf(f, ", ");
+		}
+	}
+	va_end(ap);
 	fprintf(f, "\n");
+	fflush(f);
+}
+
+void write_comment(FILE * f, int ident, const char * str)
+{
+	fprintf(f, "\n");
+	while (ident--) {
+		fprintf(f, "\t");
+	}
+	fprintf(f, "; %s\n", str);
+	fflush(f);
 }
 
 struct reg * toreg(FILE * f, struct asmexpression * x, struct list exclude)
