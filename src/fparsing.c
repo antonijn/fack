@@ -90,6 +90,27 @@ struct cpointer * new_cpointer(struct ctype * type)
 	return res;
 }
 
+static void cleanup_cfunctionptr(struct cfunctiontype * self)
+{
+	self->ret->lcleanup(self->ret);
+	freelist(self->paramtypes);
+	free(self->paramtypes);
+	free(self);
+}
+
+struct cfunctiontype * new_cfunctiontype(struct ctype * ret, struct list * paramtypes, size_t paramdepth)
+{
+	struct cfunctiontype * res = malloc(sizeof(struct cfunctiontype));
+	res->ty = FUNCTION_PTR;
+	res->size = (target == INTEL_8086) ? 2 : 4;
+	res->cleanup = &cleanup_cfunctionptr;
+	res->lcleanup = &cleanup_cfunctionptr;
+	res->ret = ret;
+	res->paramtypes = paramtypes;
+	res->paramdepth = paramdepth;
+	return res;
+}
+
 static void cleanup_var(struct cvariable * self)
 {
 	if (self->ty == GLOBAL) {
@@ -141,6 +162,7 @@ static void cleanup_cfunction(struct cfunction * self)
 	//free(self->id);
 	free(self->label);
 	self->ret->lcleanup(self->ret);
+	self->ty->lcleanup(self->ty);
 	freelist(&self->params);
 	free(self);
 }
@@ -198,6 +220,9 @@ void fparse_func(FILE * file, struct ctype * ty, char * id)
 	/* token is now ( */
 	int stack_offset;
 	struct cfunction * func;
+	struct list * paramtys = malloc(sizeof(struct list));
+	
+	*paramtys = new_list(16);
 	
 	stack_offset = 4;
 	func = new_function(ty, id);
@@ -230,15 +255,18 @@ void fparse_func(FILE * file, struct ctype * ty, char * id)
 		param = new_param(pty, pid, stack_offset);
 		free(pid);
 		add(&func->params, (void *)param, (void (*)(void *))param->cleanup);
+		add(paramtys, (void *)pty, NULL);
 		stack_offset += pty->size;
 	}
+	
+	func->paramdepth = stack_offset - 4;
+	func->ty = new_cfunctiontype(ty, paramtys, stack_offset - 4);
 	
 	gettok(file);
 	
 	/* ; or { */
-	if (token.str[0] == ';') {
-		add(&functions, (void *)func, (void (*)(void *))func->cleanup);
-	} else {
+	add(&functions, (void *)func, (void (*)(void *))func->cleanup);
+	if (token.str[0] != ';') {
 		to_section(ofile, ".text");
 		
 		write_label(ofile, func->label);

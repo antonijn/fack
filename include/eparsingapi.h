@@ -108,4 +108,6 @@ void unshield(struct asmexpression * r);
  */
 void unshield_all(void);
 
+struct ctype * unpackty(void * p);
+
 #endif

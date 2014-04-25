@@ -412,3 +412,9 @@ void shield(struct asmexpression * r)
 		}
 	}
 }
+
+struct ctype * unpackty(void * p)
+{
+	struct expr_internal * ei = p;
+	return ei->e.type;
+}

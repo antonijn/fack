@@ -41,6 +41,35 @@ static struct cvariable * getvar(char * name, struct list * vars)
 	return NULL;
 }
 
+static void * parse_func(
+	FILE * file, FILE * ofile,
+	void * left,
+	struct operator lastop,
+	struct list * vars)
+{
+	int i;
+	struct expression res;
+	struct cfunction * f = NULL;
+	
+	for (i = 0; i < functions.count; ++i) {
+		struct cfunction * cf = functions.elements[i].element;
+		if (!strcmp(token.str, cf->id)) {
+			f = cf;
+			break;
+		}
+	}
+	
+	if (!f) {
+		showerror(stderr, "error", "invalid identifier '%s'", token.str);
+	}
+	
+	res.asme = f->label;
+	res.type = f->ty;
+	
+	gettok(file);
+	return eparser_r(file, ofile, pack(res), lastop, vars);
+}
+
 static void * parse_id(
 	FILE * file, FILE * ofile,
 	void * left,
@@ -54,7 +83,7 @@ static void * parse_id(
 	if (!loc) {
 		struct cglobal * g = (struct cglobal *)getvar(token.str, &globals);
 		if (!g) {
-			showerror(stderr, "error", "invalid identifier '%s'", token.str);
+			return parse_func(file, ofile, left, lastop, vars);
 		}
 		
 		res.asme = (struct asmexpression *)
@@ -64,7 +93,7 @@ static void * parse_id(
 		return eparser_r(file, ofile, pack(res), lastop, vars);
 	}
 	
-	so = (struct asmexpression *)new_imm(loc->stack_offset);
+	so = (struct asmexpression *)new_imm(loc->stack_offset + stackdepth());
 	res.asme = (struct asmexpression *)new_ea8086(&ss, &bp, NULL, so, loc->type->size, 1);
 	res.type = loc->type;
 	gettok(file);
@@ -404,6 +433,63 @@ struct expr_internal {
 	unsigned int pushed : 1;
 };
 
+static void * eparser_fcall(
+	FILE * file, FILE * ofile,
+	void * left,
+	struct operator lastop,
+	struct list * vars)
+{
+	int depth = 0, i = 0;
+	char tokencpy[32] = { 0 };
+	struct expression ret;
+	struct cfunctiontype * fptr = unpackty(left);
+	growstack(ofile, fptr->paramdepth);
+	
+	gettok(file);
+	strcpy(tokencpy, token.str);
+	while (strcmp(tokencpy, ")")) {
+		void * param;
+		struct expression parame;
+		size_t bpoffs;
+		struct immediate * offs;
+		struct effective_address8086 * pea;
+		struct ctype * paramty;
+		
+		paramty = fptr->paramtypes->elements[i++].element;
+		
+		param = eparser(file, ofile, vars);
+		strcpy(tokencpy, token.str);
+		gettok(file);
+		
+		bpoffs = stackdepth() - depth;
+		offs = new_imm(bpoffs);
+		pea = new_ea8086(&ss, &bp, NULL, offs, paramty->size <= 2 ? 2 : paramty->size, 1);
+		
+		parame.asme = pea;
+		parame.type = fptr->paramtypes->elements[i].element;
+		parame = unpacktorvalue(param, parame);
+		write_instr(ofile, "mov", 2, pea, parame.asme);
+		
+		pea->cleanup(pea);
+		depth += paramty->size;
+	}
+	
+	cloggall();
+	write_instr(ofile, "call", 1, unpack(left).asme);
+	shrinkstack(ofile, fptr->paramdepth);
+	
+	/* TODO: proper handling of return stuffs */
+	if (fptr->ret == &_void) {
+		gettok(file);
+		return eparser_r(file, ofile, NULL, lastop, vars);
+	}
+	
+	ret.asme = &ax;
+	ret.type = &_int;
+	gettok(file);
+	return eparser_r(file, ofile, pack(ret), lastop, vars);
+}
+
 static void * eparser_r(
 	FILE * file, FILE * ofile,
 	void * left,
@@ -434,6 +520,10 @@ static void * eparser_r(
 		break;
 	case OPERATOID:
 		if (!strcmp(token.str, "(")) {
+			if (left) {
+				left = eparser_fcall(file, ofile, left, lastop, vars);
+				break;
+			}
 			gettok(file);
 			left = eparser_r(file, ofile, NULL, noop, vars);
 			gettok(file);

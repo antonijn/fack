@@ -9,36 +9,12 @@ section .text
 main:
 	push bp
 	mov bp, sp
-
-	; begin user generated asm
-
-	mov ah, 0x0f
-	int 0x10
-	mov word [mode], ax
-	xor ah, ah
-	mov al, 0x13
-	int 0x10
-	
-	; end user generated asm
-
-	; begin user generated asm
-	mov ax, word [mode]
-	; end user generated asm
-
-	; begin user generated asm
-	xor ah, ah
-	; end user generated asm
-
-	; begin user generated asm
-	int 0x10
-	; end user generated asm
-
-	; begin user generated asm
-	mov ah, 0x4c
-	; end user generated asm
-
-	; begin user generated asm
-	int 0x21
-	; end user generated asm
+	sub sp, 4
+	mov ax, word [ss:bp + 10]
+	mov word [ss:bp + 4], ax
+	mov ax, word [ss:bp + 8]
+	mov word [ss:bp + 2], ax
+	call main
+	add sp, 4
 	pop bp
 	ret

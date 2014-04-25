@@ -6,6 +6,7 @@ static int scope = -1;
 
 static struct immediate * break_label;
 static struct immediate * continue_label;
+static size_t _stackdepth = 0;
 
 static void sparser_stat(FILE * file, FILE * ofile, struct list * vars);
 
@@ -295,4 +296,25 @@ void sparser_body(FILE * file, FILE * ofile, struct list * vars)
 	
 	asm_leave_block();
 	--scope;
+}
+
+size_t stackdepth(void)
+{
+	return _stackdepth;
+}
+
+void growstack(FILE * f, size_t x)
+{
+	struct immediate * imm = new_imm(x);
+	write_instr(f, "sub", 2, &sp, imm);
+	imm->cleanup(imm);
+	_stackdepth += x;
+}
+
+void shrinkstack(FILE * f, size_t x)
+{
+	struct immediate * imm = new_imm(x);
+	write_instr(f, "add", 2, &sp, imm);
+	imm->cleanup(imm);
+	_stackdepth -= x;
 }

@@ -39,6 +39,7 @@ enum ctype_type {
 	
 	POINTER,
 	PRIMITIVE_TYPE,
+	FUNCTION_PTR,
 };
 
 struct ctype {
@@ -75,6 +76,17 @@ struct cprimitive {
 	size_t size;
 	
 	const char * name;
+};
+
+struct cfunctiontype {
+	enum ctype_type ty;
+	void (*cleanup)(struct cprimitive * self);
+	void (*lcleanup)(struct cprimitive * self);
+	size_t size;
+	
+	size_t paramdepth;
+	struct ctype * ret;
+	struct list * paramtypes;
 };
 
 enum cvariable_type {
@@ -123,8 +135,10 @@ struct cfunction {
 	
 	struct ctype * ret;
 	char * id;
+	size_t paramdepth;
 	struct immediate * label;
 	struct list params;
+	struct cfunctiontype * ty;
 };
 
 struct expression {
@@ -157,6 +171,7 @@ extern struct list functions, types, globals;
 
 struct cstruct * new_cstruct(size_t namelen, char * name);
 struct cpointer * new_cpointer(struct ctype * type);
+struct cfunctiontype * new_cfunctiontype(struct ctype * ret, struct list * paramtypes, size_t paramdepth);
 
 extern struct tok token;
 
@@ -171,5 +186,9 @@ void sparser_body(FILE * file, FILE * ofile, struct list * vars);
 void * eparser(FILE * file, FILE * ofile, struct list * vars);
 
 void printreginfo(void);
+
+size_t stackdepth(void);
+void growstack(FILE * f, size_t x);
+void shrinkstack(FILE * f, size_t x);
 
 #endif
