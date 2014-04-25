@@ -4,6 +4,7 @@
 struct expr_internal {
 	struct expression e;
 	struct reg * r; /* used for storing memory values */
+	struct list rlist;
 	unsigned int pushed : 1;
 };
 
@@ -33,6 +34,16 @@ void printreginfo(void)
 	for (i = 0; i < REGS_COUNT; ++i) {
 		printf("{ %s, %d, %d }\n", regs[i].r->name, regs[i].occupied, regs[i].shielded);
 	}
+}
+
+int packedinflags(void * p)
+{
+	struct expr_internal * ei = p;
+	
+	if (!ei->pushed && ei->e.asme->ty == FLAG) {
+		return 1;
+	}
+	return 0;
 }
 
 static void occupy(struct reg * r)
@@ -209,6 +220,25 @@ static void free_expr_internal(void * p)
 	free(p);
 }
 
+struct packedderefreg
+{
+	void * p;
+	struct effective_address8086 * ea;
+};
+
+static void cleanderefreg(struct packedderefreg * p)
+{
+	/* gaah! is this allowed? D: */
+	shield_all();
+	unshield(p->ea->base);
+	
+	unpacktogpr(p->p);
+	
+	unshield_all();
+	
+	free(p);
+}
+
 void * pack(struct expression e)
 {
 	struct expr_internal * ei = malloc(sizeof(struct expr_internal));
@@ -216,6 +246,16 @@ void * pack(struct expression e)
 	ei->e = e;
 	if (e.asme->ty == DEREFERENCE) {
 		ei->r = NULL;
+		ei->rlist = new_list(4);
+		if (((struct effective_address8086 *)e.asme)->base != &bp) {
+			struct expression pdre;
+			struct packedderefreg * pdr = malloc(sizeof(struct packedderefreg));
+			pdre.asme = ((struct effective_address8086 *)e.asme)->base;
+			pdre.type = &_int;
+			pdr->p = pack(pdre);
+			pdr->ea = e.asme;
+			add(&ei->rlist, pdr, &cleanderefreg);
+		}
 		/*ei->r = getgpr();
 		occupy(ei->r);
 		write_instr(ofile, "mov", 2, ei->r, e.asme);*/
@@ -242,6 +282,7 @@ struct expression unpack(void * p)
 		return unpacktogpr(p);
 	}
 	if (ei->e.asme->ty == DEREFERENCE) {
+		freelist(&ei->rlist);
 		if (ei->r) {
 			expr.asme = ei->r;
 		} else {
@@ -320,6 +361,7 @@ struct expression unpacktogpr(void * p)
 		return expr;
 	}
 	if (ei->e.asme->ty == DEREFERENCE) {
+		freelist(&ei->rlist);
 		if (ei->r) {
 			expr.asme = ei->r;
 		} else {
@@ -344,6 +386,7 @@ struct expression unpacktogprea(void * p)
 {
 	struct expr_internal * ei = p;
 	if (ei->e.asme->ty == DEREFERENCE && !ei->pushed && !ei->r) {
+		freelist(&ei->rlist);
 		return ei->e;
 	}
 	return unpacktogpr(p);

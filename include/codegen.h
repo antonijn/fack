@@ -85,6 +85,8 @@ void to_section(FILE * f, const char * section);
 void write_dx(FILE * f, int dsize, int ac, ...);
 void write_comment(FILE * f, int ident, const char * str);
 
+struct flags_flag * invflag(struct flags_flag * fl);
+
 /*
  * Enter an asm block, helps the nomenclature for get_tmp_label()
  * */

@@ -128,7 +128,8 @@ static void gettok_id(FILE * file)
 	if (!strcmp(token.str, "const") ||
 		!strcmp(token.str, "unsigned") ||
 		!strcmp(token.str, "signed") ||
-		!strcmp(token.str, "static")) {
+		!strcmp(token.str, "static") ||
+		!strcmp(token.str, "far")) {
 		token.ty = MODIFIER;
 	} else if (!strcmp(token.str, "int") ||
 		!strcmp(token.str, "short") ||
@@ -147,6 +148,8 @@ static void gettok_id(FILE * file)
 		!strcmp(token.str, "enum") ||
 		!strcmp(token.str, "union")) {
 		token.ty = TYPE_TYPE;
+	} else if (!strcmp(token.str, "sizeof")) {
+		token.ty = OPERATOR;
 	}
 }
 
@@ -215,20 +218,28 @@ static void gettok_aop(FILE * file)
 	token.str[token.len++] = ch;
 	if (gettok_aopc(ch)) {
 		ch = getc(file);
-		if (token.str[0] == '/') {
-			if (ch == '*') {
-				while (chpr != '*' || ch != '/') {
-					chpr = ch;
-					ch = getc(file);
-					++_column;
-					if (ch == '\n') {
-						++_linenum;
-						_column = 0;
-					}
+		if (token.str[0] == '+' && ch == '+') {
+			++_column;
+			token.str[token.len++] = ch;
+			return;
+		}
+		if (token.str[0] == '-' && ch == '-') {
+			++_column;
+			token.str[token.len++] = ch;
+			return;
+		}
+		if (token.str[0] == '/' && ch == '*') {
+			while (chpr != '*' || ch != '/') {
+				chpr = ch;
+				ch = getc(file);
+				++_column;
+				if (ch == '\n') {
+					++_linenum;
+					_column = 0;
 				}
-				gettok(file);
-				return;
 			}
+			gettok(file);
+			return;
 		}
 		
 		if (ch != '=') {

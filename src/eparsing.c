@@ -88,6 +88,9 @@ static void * parse_id(
 		
 		res.asme = (struct asmexpression *)
 		    new_ea8086(NULL, NULL, NULL, (struct asmexpression *)g->label, g->type->size, 0);
+		if (g->isarray) {
+			res.asme = new_label(g->label->str);
+		}
 		res.type = g->type;
 		gettok(file);
 		return eparser_r(file, ofile, pack(res), lastop, vars);
@@ -109,7 +112,9 @@ static struct operator get_binop(char * str)
 {
 	struct operator res;
 	if (!strcmp(str, ".") ||
-	    !strcmp(str, "->")) {
+	    !strcmp(str, "->") ||
+	    !strcmp(str, "++") ||
+	    !strcmp(str, "--")) {
 		
 		res.prec = 2;
 		res.binary = 1;
@@ -209,6 +214,145 @@ static struct operator get_binop(char * str)
 	return res;
 }
 
+static struct operator get_unop(char * str)
+{
+	struct operator res;
+	if (!strcmp(str, "++") ||
+	    !strcmp(str, "--") ||
+	    !strcmp(str, "+") ||
+	    !strcmp(str, "-") ||
+	    !strcmp(str, "!") ||
+	    !strcmp(str, "~") ||
+	    !strcmp(str, "&") ||
+	    !strcmp(str, "*") ||
+	    !strcmp(str, "sizeof")) {
+		
+		res.prec = 3;
+		res.binary = 0;
+		res.lefttoright = 0;
+		return res;
+	}
+	
+	/* assignment */
+	res.prec = 16;
+	res.binary = 1;
+	res.lefttoright = 0;
+	return res;
+}
+
+static void * parse_uop(
+	FILE * file, FILE * ofile,
+	void * left,
+	struct operator lastop,
+	struct list * vars)
+{
+	char opstr[token.len + 1];
+	void * right;
+	struct expression res;
+	struct operator op = get_unop(token.str);
+	
+	if (op.prec >= lastop.prec) {
+		return left;
+	}
+	
+	memcpy(opstr, token.str, token.len + 1);
+	
+	gettok(file);
+	right = eparser_r(file, ofile, NULL, op, vars);
+	
+	if (!strcmp(opstr, "++")) {
+		
+		struct expression r;
+		unshield_all();
+		r = unpacklvalue(right);
+		write_instr(ofile, "inc", 1, r.asme);
+		
+		res = r;
+		
+	} else if (!strcmp(opstr, "--")) {
+		
+		struct expression r;
+		unshield_all();
+		r = unpacklvalue(right);
+		write_instr(ofile, "dec", 1, r.asme);
+		
+		res = r;
+		
+	} else if (!strcmp(opstr, "-")) {
+		
+		struct expression r;
+		unshield_all();
+		r = unpacktogpr(right);
+		write_instr(ofile, "neg", 1, r.asme);
+		
+		res = r;
+		
+	} else if (!strcmp(opstr, "!")) {
+		
+		struct expression r;
+		unshield_all();
+		
+		if (packedinflags(right)) {
+			
+			r = unpacktoflags(right);
+			res.asme = invflag(r.asme);
+			res.type = r.type;
+			
+		} else {
+			
+			r = unpacktogpr(right);
+			write_instr(ofile, "test", 2, r.asme, r.asme);
+			res.asme = &f_z;
+			res.type = r.type;
+			
+		}
+		
+	} else if (!strcmp(opstr, "~")) {
+		
+		struct expression r;
+		struct immediate * imm = new_imm(-1);
+		unshield_all();
+		r = unpacktogpr(right);
+		write_instr(ofile, "xor", 2, r.asme, imm);
+		
+		res = r;
+		
+		imm->cleanup(imm);
+		
+	} else if (!strcmp(opstr, "&")) {
+		
+		struct expression r;
+		unshield_all();
+		r = unpack(right);
+		if (r.asme->ty == DEREFERENCE) {
+			unshield_all();
+			res.asme = getgpr();
+			res.type = r.type;
+			
+			write_instr(ofile, "lea", 2, res.asme, r.asme);
+		}
+	} else if (!strcmp(opstr, "*")) {
+		
+		struct expression r;
+		unshield_all();
+		r = unpack(right);
+		if (r.asme->ty == DEREFERENCE) {
+			shield_all();
+			unshield(&bx);
+			unshield(&si);
+			unshield(&di);
+			res.asme = getgpr();
+			res.type = ((struct cpointer *)r.type)->type;
+			unshield_all();
+			
+			write_instr(ofile, "mov", 2, res.asme, r.asme);
+			res.asme = new_ea8086(NULL, &bx, NULL, NULL, res.type->size, 0);
+		}
+	}
+	
+	return eparser_r(file, ofile, pack(res), op, vars);
+}
+
 static void * parse_bop(
 	FILE * file, FILE * ofile,
 	void * left,
@@ -228,9 +372,35 @@ static void * parse_bop(
 	memcpy(opstr, token.str, token.len + 1);
 	
 	gettok(file);
-	right = eparser_r(file, ofile, NULL, op, vars);
+	if (strcmp(opstr, "++") &&
+		strcmp(opstr, "--")) {
+		
+		right = eparser_r(file, ofile, NULL, op, vars);
+	}
 	
-	if (!strcmp(opstr, "==")) {
+	if (!strcmp(opstr, "++")) {
+		
+		struct expression r;
+		unshield_all();
+		r = unpacklvalue(left);
+		res.asme = getgpr();
+		write_instr(ofile, "mov", 2, res.asme, r.asme);
+		write_instr(ofile, "inc", 1, r.asme);
+		
+		res.type = r.type;
+		
+	} else if (!strcmp(opstr, "--")) {
+		
+		struct expression r;
+		unshield_all();
+		r = unpacklvalue(left);
+		res.asme = getgpr();
+		write_instr(ofile, "mov", 2, res.asme, r.asme);
+		write_instr(ofile, "dec", 1, r.asme);
+		
+		res.type = r.type;
+		
+	} else if (!strcmp(opstr, "==")) {
 		
 		struct expression l, r;
 		unshield_all();
@@ -512,7 +682,7 @@ static void * eparser_r(
 			left = parse_bop(file, ofile, left, lastop, vars);
 			break;
 		}
-		/* parse uop */
+		left = parse_uop(file, ofile, left, lastop, vars);
 		break;
 	case DEC_INT_LITERAL:
 		left = parse_intlit(file, ofile, left, lastop, vars, "%d");
@@ -542,13 +712,15 @@ static void * eparser_r(
 			
 			shield_all();
 			unshield(&bx);
+			unshield(&si);
+			unshield(&di);
 			l = unpacktogpr(left);
 			unshield_all();
-			shield(&bx);
+			shield(l.asme);
 			r = unpacktorvalue(idx, l);
-			write_instr(ofile, "add", 2, &bx, r.asme);
+			write_instr(ofile, "add", 2, l.asme, r.asme);
 			ea.type = ((struct cpointer *)l.type)->type;
-			ea.asme = new_ea8086(NULL, &bx, NULL, NULL, ea.type->size, 0);
+			ea.asme = new_ea8086(NULL, l.asme, NULL, NULL, ea.type->size, 0);
 			unshield_all();
 			
 			left = pack(ea);

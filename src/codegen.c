@@ -368,7 +368,7 @@ void cjmp_c(FILE * f, struct asmexpression * x, struct immediate * jmp)
 	write_instr(f, "jnz", 1, jmp);
 }
 
-static struct flags_flag * copp(struct flags_flag * fl)
+struct flags_flag * invflag(struct flags_flag * fl)
 {
 	if (fl == &f_e) {
 		return &f_ne;
@@ -406,7 +406,7 @@ void cjmp_nc(FILE * f, struct asmexpression * x, struct immediate * jmp)
 	if (x->ty == FLAG) {
 		char instr[4] = { 0 };
 		instr[0] = 'j';
-		strcat(instr, copp((struct flags_flag *)x)->name);
+		strcat(instr, invflag((struct flags_flag *)x)->name);
 		write_instr(f, instr, 1, jmp);
 		return;
 	}

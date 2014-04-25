@@ -110,6 +110,7 @@ struct cglobal {
 	struct ctype * type;
 	char * id;
 	struct immediate * label;
+	int isarray;
 };
 
 struct clocal {

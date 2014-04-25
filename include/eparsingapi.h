@@ -14,6 +14,8 @@ void enter_exprenv(FILE * ofile);
  */
 void leave_exprenv(void);
 
+int packedinflags(void * p);
+
 /*
  * Packs an expression, protecting its value until unpacking.
  */

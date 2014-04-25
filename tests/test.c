@@ -1,4 +1,6 @@
 
+int arr[100];
+
 void * mode;
 
 void enter13h()
@@ -31,9 +33,8 @@ int main()
 	int i;
 	int a[10];
 	
-	for (i = 0; i < 10; i = i + 1) {
-		int b;
-		b = a[i];
+	for (i = 0; i < 10; ++i) {
+		a[i] = arr[i];
 	}
 	
 	enter13h();

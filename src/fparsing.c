@@ -124,12 +124,13 @@ static void cleanup_var(struct cvariable * self)
 struct cglobal * new_global(struct ctype * type, char * id)
 {
 	size_t idl = strlen(id);
-	struct cglobal * res = malloc(sizeof(struct cvariable));
+	struct cglobal * res = malloc(sizeof(struct cglobal));
 	res->ty = GLOBAL;
 	res->cleanup = (void (*)(struct cglobal *))&cleanup_var;
 	res->type = type;
 	res->label = new_label(id);
 	res->id = res->label->str;
+	res->isarray = 0;
 	return res;
 }
 struct clocal * new_local(struct ctype * type, char * id, int stack_offset)
@@ -321,6 +322,7 @@ int fparse_afterty(FILE * file, struct ctype * ty)
 			struct list livars;
 			struct expression e;
 			
+			//g->isarray = 1;
 			ty = new_cpointer(ty);
 			g->type = ty;
 			
@@ -337,6 +339,8 @@ int fparse_afterty(FILE * file, struct ctype * ty)
 			write_resb(ofile, ty->size * *((struct immediate *)e.asme)->value);
 			
 			leave_exprenv();
+			
+			g->isarray = 1;
 			
 		} else {
 			to_section(ofile, ".bss");

@@ -2,6 +2,9 @@
 [bits 16]
 
 section .bss
+arr:
+	resb 200
+
 mode:
 	resb 2
 
@@ -51,19 +54,17 @@ main:
 	jmp .L0.2
 
 .L0.1:
-	mov ax, word [ss:bp + -2]
-	add ax, 1
-	mov word [ss:bp + -2], ax
+	inc word [ss:bp + -2]
 	jmp .L0.0
 
 .L0.2:
-	sub sp, 2
 	lea ax, word [ss:bp + -4]
 	mov bx, ax
 	add bx, word [ss:bp + -2]
-	mov ax, word [bx]
-	mov word [ss:bp + -24], ax
-	add sp, 2
+	mov si, arr
+	add si, word [ss:bp + -2]
+	mov ax, word [si]
+	mov word [bx], ax
 	jmp .L0.1
 
 .L0.3:
