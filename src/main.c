@@ -29,8 +29,12 @@ int main(int argc, char **argv) {
 			outfile = (const char *)arg;
 		} else if (!strcmp(arg, "-m8086")) {
 			target.cpu = m8086;
+			_int.size = 2;
+			_long.size = 4;
 		} else if (!strcmp(arg, "-m80386")) {
 			target.cpu = m80386;
+			_int.size = 4;
+			_long.size = 8;
 		} else {
 			filenames[fncnt++] = arg;
 		}

@@ -385,27 +385,35 @@ static void * parse_mul(
 	FILE * ofile)
 {
 	struct expression res, l, r;
+	struct ctype * opty = unpackty(left)->size > unpackty(right)->size ?
+		unpackty(left)
+		: unpackty(right);
+	
 	shield_all();
 	unshield(target.cpu.acc);
-	l = unpacktogpr(left);
+	l = unpacktogprx(left, opty->size);
 	unshield_all();
 	shield(target.cpu.acc);
-	r = unpacktogprea(right);
-	if (l.type->size >= 2 || r.type->size >= 2) {
+	r = unpacktogpreax(right, opty->size);
+	
+	if (opty->size >= 2) {
 		clogg(target.cpu.data);
 	}
 	write_instr(ofile, "mul", 1, r.asme);
 	
 	unshield_all();
-	switch (l.type->size > r.type->size ? l.type->size : r.type->size) {
+	switch (opty->size) {
 		case 1:
 			res.asme = &al;
+			break;
 		case 2:
 			res.asme = &ax;
+			break;
 		case 4:
 			res.asme = &eax;
+			break;
 	}
-	res.type = l.type;
+	res.type = opty;
 	return pack(res);
 }
 
@@ -630,7 +638,7 @@ static void * parse_bop(
 		if (l.asme->ty == DEREFERENCE) {
 			cloggmem(l.asme);
 		}
-		write_instr(ofile, "mov", 2, l.asme, r.asme);
+		write_instr(ofile, "mov", 2, l.asme, promote(r, l.type->size).asme);
 		
 		unshield_all();
 		res.asme = l.asme;

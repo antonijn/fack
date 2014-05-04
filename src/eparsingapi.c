@@ -45,7 +45,7 @@ static struct reginfo regs[] = {
 	{ &dh, 0, 0 },
 };
 
-#define REGS_COUNT 14
+#define REGS_COUNT (sizeof(regs)/sizeof(regs[0]))
 
 void printreginfo(void)
 {
@@ -428,7 +428,74 @@ void * pack(struct expression e)
 	return ei;
 }
 
+struct expression promote(struct expression e, int size)
+{
+	struct reg * assigned;
+	int i;
+	
+	if (e.type->size == size) {
+		return e;
+	}
+	
+	/* assume only signed stuff for now */
+	assigned = getgpr(size);
+	if (size > e.type->size) {
+		write_instr(ofile, "movsx", 2, assigned, e.asme);
+		e.asme = assigned;
+		return e;
+	}
+	
+	if (e.asme == &eax) {
+		switch (size) {
+			case 1:
+				e.asme = &al;
+				return e;
+			case 2:
+				e.asme = &ax;
+				return e;
+		}
+	} else if (e.asme == &ebx) {
+		switch (size) {
+			case 1:
+				e.asme = &bl;
+				return e;
+			case 2:
+				e.asme = &bx;
+				return e;
+		}
+	} else if (e.asme == &ecx) {
+		switch (size) {
+			case 1:
+				e.asme = &cl;
+				return e;
+			case 2:
+				e.asme = &cx;
+				return e;
+		}
+	} else if (e.asme == &edx) {
+		switch (size) {
+			case 1:
+				e.asme = &dl;
+				return e;
+			case 2:
+				e.asme = &dx;
+				return e;
+		}
+	}
+	
+	if (e.asme->ty == DEREFERENCE) {
+		/* don't we all love little endian? <3 */
+		((struct effective_address8086 *)e.asme)->size = size;
+	}
+	return e;
+}
+
 struct expression unpack(void * p)
+{
+	return unpackx(p, unpackty(p)->size);
+}
+
+struct expression unpackx(void * p, int size)
 {
 	struct expression expr;
 	struct expr_internal * ei = p;
@@ -437,7 +504,7 @@ struct expression unpack(void * p)
 	}
 	
 	if (ei->pushed) {
-		return unpacktogpr(p);
+		return unpacktogprx(p, size);
 	}
 	if (ei->e.asme->ty == DEREFERENCE) {
 		freelist(&ei->rlist);
@@ -448,14 +515,14 @@ struct expression unpack(void * p)
 		}
 		expr.type = ei->e.type;
 		removefromlist(&packed, p);
-		return expr;
+		return promote(expr, size);
 	}
 	expr = ei->e;
 	if (expr.asme->ty != IMMEDIATE)
 	{
 		removefromlist(&packed, p);
 	}
-	return expr;
+	return promote(expr, size);
 }
 
 struct expression unpacklvalue(void * p)
@@ -469,18 +536,28 @@ struct expression unpacklvalue(void * p)
 
 struct expression unpacktorvalue(void * p, struct expression e)
 {
+	return unpacktorvaluex(p, e, unpackty(p)->size);
+}
+
+struct expression unpacktorvaluex(void * p, struct expression e, int size)
+{
 	struct expr_internal * ei = p;
 	if (ei->e.asme->ty == FLAG) {
-		return unpacktogpr(p);
+		return unpacktogprx(p, size);
 	}
 	if (e.asme->ty == DEREFERENCE && ei->e.asme->ty == DEREFERENCE
 		&& !ei->pushed && !ei->r) {
-		return unpacktogpr(p);
+		return unpacktogprx(p, size);
 	}
-	return unpack(p);
+	return unpackx(p, size);
 }
 
 struct expression unpacktogpr(void * p)
+{
+	return unpacktogprx(p, unpackty(p)->size);
+}
+
+struct expression unpacktogprx(void * p, int size)
 {
 	struct expression expr;
 	struct expr_internal * ei = p;
@@ -489,7 +566,7 @@ struct expression unpacktogpr(void * p)
 		expr.type = ei->e.type;
 		write_instr(ofile, "pop", 1, expr.asme); /* temporary bad code */
 		removefromlist(&packed, p);
-		return expr;
+		return promote(expr, size);
 	}
 	if (ei->e.asme->ty == FLAG) {
 		struct immediate * skip;
@@ -507,7 +584,7 @@ struct expression unpacktogpr(void * p)
 		skip->cleanup(skip);
 		
 		removefromlist(&packed, p);
-		return expr;
+		return promote(expr, size);
 	}
 	if (ei->e.asme->ty == REGISTER) {
 		expr = ei->e;
@@ -516,7 +593,7 @@ struct expression unpacktogpr(void * p)
 			write_instr(ofile, "mov", 2, expr.asme, ei->e.asme);
 		}
 		removefromlist(&packed, p);
-		return expr;
+		return promote(expr, size);
 	}
 	if (ei->e.asme->ty == DEREFERENCE) {
 		freelist(&ei->rlist);
@@ -528,7 +605,7 @@ struct expression unpacktogpr(void * p)
 		}
 		expr.type = ei->e.type;
 		removefromlist(&packed, p);
-		return expr;
+		return promote(expr, size);
 	}
 	expr.asme = getgpr(ei->e.type->size);
 	expr.type = ei->e.type;
@@ -537,15 +614,20 @@ struct expression unpacktogpr(void * p)
 	{
 		removefromlist(&packed, p);
 	}
-	return expr;
+	return promote(expr, size);
 }
 
 struct expression unpacktogprea(void * p)
 {
+	return unpacktogpreax(p, unpackty(p)->size);
+}
+
+struct expression unpacktogpreax(void * p, int size)
+{
 	struct expr_internal * ei = p;
 	if (ei->e.asme->ty == DEREFERENCE && !ei->pushed && !ei->r) {
 		freelist(&ei->rlist);
-		return ei->e;
+		return promote(ei->e, size);
 	}
 	return unpacktogpr(p);
 }

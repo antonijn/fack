@@ -26,6 +26,7 @@ void * pack(struct expression e);
  * leaving its value open to be changed.
  */
 struct expression unpack(void * p);
+struct expression unpackx(void * p, int size);
 
 /*
  * Unpacks an expression as an lvalue, so the result
@@ -37,17 +38,20 @@ struct expression unpacklvalue(void * p);
  * Unpacks an expression into a general purpose register.
  */
 struct expression unpacktogpr(void * p);
+struct expression unpacktogprx(void * p, int size);
 
 /*
  * Unpacks an expression into a general purpose register,
  * unless the expression is an effective address.
  */
 struct expression unpacktogprea(void * p);
+struct expression unpacktogpreax(void * p, int size);
 
 /*
  * Unpacks an expression into an rvalue.
  */
 struct expression unpacktorvalue(void * p, struct expression e);
+struct expression unpacktorvaluex(void * p, struct expression e, int size);
 
 /*
  * Unpacks an expression into the flags register, so it's
@@ -109,6 +113,12 @@ void unshield(struct asmexpression * r);
  * Basically an undo operation for disallow_gpr.
  */
 void unshield_all(void);
+
+/*
+ * Performs an integer size cast.
+ * Name is misleading, promoting isn't necessarily involved.
+ */
+struct expression promote(struct expression e, int size);
 
 struct ctype * unpackty(void * p);
 

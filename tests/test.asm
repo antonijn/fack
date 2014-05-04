@@ -46,11 +46,14 @@ main:
 	push esp
 	mov ebp, esp
 	sub esp, 4
+	mov byte [ss:ebp + -3], 10
+	mov byte [ss:ebp + -4], 20
 	mov al, byte [ss:ebp + -3]
 	mul byte [ss:ebp + -4]
-	mov bx, 2
-	mul bx
-	mov word [ss:ebp + -2], eax
+	movsx eax, al
+	mov ebx, 2
+	mul ebx
+	mov word [ss:ebp + -2], ax
 	add esp, 4
 	pop ebp
 	ret
