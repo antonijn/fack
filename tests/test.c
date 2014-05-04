@@ -30,6 +30,7 @@ void leave13h()
 
 int main()
 {
+	short a;
 	char i, j;
-	i = i * j;
+	a = (i * j) * 2;
 }

@@ -3,8 +3,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <options.h>
-#include <list.h>
+#include <fack/options.h>
+#include <fack/list.h>
 
 enum asmexpressiontype {
 	IMMEDIATE,

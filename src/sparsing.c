@@ -1,6 +1,6 @@
-#include <parsing.h>
-#include <codegen.h>
-#include <eparsingapi.h>
+#include <fack/parsing.h>
+#include <fack/codegen.h>
+#include <fack/eparsingapi.h>
 
 static int scope = -1;
 

@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <options.h>
-#include <codegen.h>
 #include <stdarg.h>
 #include <string.h>
+
+#include <fack/options.h>
+#include <fack/codegen.h>
 
 static void reg_tostring(FILE * f, struct reg * r);
 static void ea_tostring(FILE * f, struct effective_address8086 * ea);

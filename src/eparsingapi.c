@@ -1,6 +1,7 @@
-#include <eparsingapi.h>
 #include <stdlib.h>
-#include <options.h>
+
+#include <fack/options.h>
+#include <fack/eparsingapi.h>
 
 struct expr_internal {
 	struct expression e;

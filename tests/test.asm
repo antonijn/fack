@@ -45,10 +45,12 @@ leave13h:
 main:
 	push bp
 	mov bp, sp
-	sub sp, 2
-	mov al, byte [ss:bp + -1]
-	mul byte [ss:bp + -2]
-	mov byte [ss:bp + -1], al
-	add sp, 2
+	sub sp, 4
+	mov al, byte [ss:bp + -3]
+	mul byte [ss:bp + -4]
+	mov bx, 2
+	mul bx
+	mov word [ss:bp + -2], ax
+	add sp, 4
 	pop bp
 	ret

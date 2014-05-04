@@ -2,9 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <options.h>
-#include <parsing.h>
-#include <codegen.h>
+#include <fack/options.h>
+#include <fack/parsing.h>
+#include <fack/codegen.h>
 
 enum optimise optimiseLevel = O0;
 const char * outfile = "out";

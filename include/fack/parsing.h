@@ -2,9 +2,9 @@
 #define PARSING_H
 
 #include <stdio.h>
-#include <list.h>
-#include <codegen.h>
-#include <options.h>
+#include <fack/list.h>
+#include <fack/codegen.h>
+#include <fack/options.h>
 
 enum tokenty {
 	STOP,
@@ -156,6 +156,20 @@ enum codegenhint {
 	INFLAGS,
 };
 
+enum modifiers {
+	MF_NONE,
+	MF_SIGNED,
+	MF_UNSIGNED,
+	MF_STATIC,
+	MF_FAR,
+	MF_CONST,
+};
+
+enum cconv {
+	CDECL,
+	STDCALL,
+};
+
 /*
  * Cleans up struct expression.
  * */
@@ -167,7 +181,7 @@ struct cglobal * new_global(struct ctype * type, char * id);
 struct clocal * new_local(struct ctype * type, char * id, int stack_offset);
 struct cparam * new_param(struct ctype * type, char * id, int stack_offset);
 
-extern struct cprimitive _char, _int, _long, _float, _double, _void;
+extern struct cprimitive _float, _double, _void, _char, _int, _long, _short;
 
 extern struct list functions, types, globals;
 

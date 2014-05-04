@@ -1,9 +1,10 @@
-#include <parsing.h>
-#include <codegen.h>
 #include <string.h>
 #include <assert.h>
 #include <stdarg.h>
-#include <eparsingapi.h>
+
+#include <fack/eparsingapi.h>
+#include <fack/parsing.h>
+#include <fack/codegen.h>
 
 struct operator {
 	int prec;
@@ -649,14 +650,22 @@ static void * parse_bop(
 		l = unpacktogpr(left);
 		unshield_all();
 		shield(&ax);
-		shield(&dx);
+		if (l.type->size < 2 && unpackty(right)->size < 2) {
+			res.asme = &ah;
+			clogg(&ah);
+			write_instr(ofile, "xor", 2, &ah, &ah);
+			shield(&ah);
+		} else {
+			res.asme = &ax;
+			clogg(&dx);
+			write_instr(ofile, "xor", 2, &dx, &dx);
+			shield(&dx);
+		}
 		r = unpacktogprea(right);
 		clogg(&dx);
-		write_instr(ofile, "xor", 2, &dx, &dx);
 		write_instr(ofile, "div", 1, r.asme);
 		
 		unshield_all();
-		res.asme = &ax;
 		res.type = l.type;
 		resp = pack(res);
 	} else if (!strcmp(opstr, "%")) {

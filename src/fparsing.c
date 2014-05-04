@@ -1,11 +1,11 @@
-#include <options.h>
-#include <codegen.h>
-#include <parsing.h>
+#include <fack/options.h>
+#include <fack/codegen.h>
+#include <fack/parsing.h>
+#include <fack/eparsingapi.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <eparsingapi.h>
 
 struct list functions;
 struct list types;
