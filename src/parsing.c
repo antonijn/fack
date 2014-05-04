@@ -129,7 +129,10 @@ static void gettok_id(FILE * file)
 		!strcmp(token.str, "unsigned") ||
 		!strcmp(token.str, "signed") ||
 		!strcmp(token.str, "static") ||
-		!strcmp(token.str, "far")) {
+		!strcmp(token.str, "far") ||
+		!strcmp(token.str, "_cdecl") ||
+		!strcmp(token.str, "_stdcall") ||
+		!strcmp(token.str, "_fastcall")) {
 		token.ty = MODIFIER;
 	} else if (!strcmp(token.str, "int") ||
 		!strcmp(token.str, "short") ||

@@ -1,44 +1,14 @@
-[cpu 8086]
-[bits 16]
-
-section .bss
-img:
-	resb 18
-
-mode:
-	resb 2
+[cpu 386]
+[bits 32]
 
 section .text
-enter13h:
+foo:
 	push esp
 	mov ebp, esp
-
-	; begin user generated asm
-
-	mov ah, 0x0f
-	int 0x10
-	mov word [mode], ax
-	xor ah, ah
-	mov al, 0x13
-	int 0x10
-	
-	; end user generated asm
-	pop ebp
-	ret
-
-leave13h:
-	push esp
-	mov ebp, esp
-
-	; begin user generated asm
-
-	mov ax, word [mode]
-	xor ah, ah
-	int 0x10
-	mov ah, 0x4c
-	int 0x21
-	
-	; end user generated asm
+	mov ax, word [ss:ebp + 4]
+	movsx bx, byte [ss:ebp + 8]
+	mul bx
+	mov word [ss:ebp + 4], ax
 	pop ebp
 	ret
 
@@ -54,6 +24,15 @@ main:
 	mov ebx, 2
 	mul ebx
 	mov word [ss:ebp + -2], ax
+	sub esp, 8
+	mov ax, word [ss:ebp + -2]
+	movsx eax, ax
+	mov word [ss:bp + -8], eax
+	mov al, byte [ss:ebp + -3]
+	movsx eax, al
+	mov word [ss:bp + -12], eax
+	call foo
+	add esp, 8
 	add esp, 4
 	pop ebp
 	ret

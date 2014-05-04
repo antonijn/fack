@@ -26,13 +26,19 @@ struct cprimitive _void = { PRIMITIVE, &pcleanup, &pcleanup, 0, "void" };
 static FILE * ofile;
 
 void fparser_init(FILE * outfile) {
+	char cpudir[16] = { 0 };
+	char bitsdir[16] = { 0 };
+	
 	functions = new_list(32);
 	types = new_list(32);
 	globals = new_list(32);
 	ofile = outfile;
 	
-	write_directive(outfile, "cpu 8086");
-	write_directive(outfile, "bits 16");
+	sprintf(cpudir, "cpu %s", target.cpu.cpuid);
+	sprintf(bitsdir, "bits %d", target.cpu.bytes * 8);
+	
+	write_directive(outfile, cpudir);
+	write_directive(outfile, bitsdir);
 }
 
 void fparser_release() {
@@ -258,7 +264,7 @@ void fparse_func(FILE * file, struct ctype * ty, char * id)
 		free(pid);
 		add(&func->params, (void *)param, (void (*)(void *))param->cleanup);
 		add(paramtys, (void *)pty, NULL);
-		stack_offset += pty->size;
+		stack_offset += pty->size > target.cpu.bytes ? pty->size : target.cpu.bytes;
 	}
 	
 	func->paramdepth = stack_offset - 4;

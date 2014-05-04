@@ -492,6 +492,12 @@ struct expression promote(struct expression e, int size)
 
 struct expression unpack(void * p)
 {
+	if (!p) {
+		struct expression e;
+		e.asme = NULL;
+		e.type = NULL;
+		return e;
+	}
 	return unpackx(p, unpackty(p)->size);
 }
 

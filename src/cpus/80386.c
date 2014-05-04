@@ -4,11 +4,11 @@
 #include <fack/eparsingapi.h>
 
 struct arch m80386 = {
-	2,
+	4,
 	&eax, &ebx, &ecx, &edx,
 	&esi, &edi, &esp, &ebp,
 	
 	&cdecl8086, NULL, NULL,
 	
-	0
+	0, "386"
 };

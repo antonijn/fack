@@ -752,22 +752,24 @@ static void * eparser_fcall(
 		struct immediate * offs;
 		struct effective_address8086 * pea;
 		struct ctype * paramty;
+		int elementsize;
 		
 		paramty = fptr->paramtypes->elements[i++].element;
-		depth += paramty->size;
+		elementsize = paramty->size > target.cpu.bytes ? paramty->size : target.cpu.bytes;
+		depth += elementsize;
 		
 		param = eparser(file, ofile, vars);
 		strcpy(tokencpy, token.str);
 		gettok(file);
 		
-		bpoffs = -depth;
+		bpoffs = -depth - stackdepth() + fptr->paramdepth;
 		offs = new_imm(bpoffs);
 		pea = new_ea8086(&ss, &bp, NULL, offs, paramty->size <= 2 ? 2 : paramty->size, 1);
 		
 		parame.asme = pea;
 		parame.type = fptr->paramtypes->elements[i].element;
 		parame = unpacktorvalue(param, parame);
-		write_instr(ofile, "mov", 2, pea, parame.asme);
+		write_instr(ofile, "mov", 2, pea, promote(parame, elementsize).asme);
 		
 		pea->cleanup(pea);
 	}

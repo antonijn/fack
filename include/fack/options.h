@@ -17,6 +17,8 @@ struct arch {
 
 	struct cconv * cdecl, * stdcall, * fastcall;
 	int offs;
+	
+	const char * cpuid;
 };
 
 extern struct arch m80386;

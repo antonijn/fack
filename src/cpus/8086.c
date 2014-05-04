@@ -19,7 +19,7 @@ struct arch m8086 = {
 	
 	&cdecl8086, NULL, NULL,
 	
-	6
+	6, "8086"
 };
 
 void prepcall_cdecl8086(FILE * ofile, struct cfunctiontype * cft)
