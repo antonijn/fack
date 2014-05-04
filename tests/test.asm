@@ -5,10 +5,10 @@ section .text
 foo:
 	push esp
 	mov ebp, esp
-	mov ax, word [ss:ebp + 4]
-	movsx bx, byte [ss:ebp + 8]
+	mov ax, word [ss:ebp + 8]
+	movsx bx, byte [ss:ebp + 12]
 	mul bx
-	mov word [ss:ebp + 4], ax
+	mov word [ss:ebp + 8], ax
 	pop ebp
 	ret
 
