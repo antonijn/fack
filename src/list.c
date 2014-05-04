@@ -2,7 +2,7 @@
 
 struct list new_list(size_t c) {
 	struct list r;
-	r.elements = malloc(sizeof(void*) * c);
+	r.elements = malloc(sizeof(struct lelement) * c);
 	r.count = 0;
 	r.capacity = c;
 	return r;
