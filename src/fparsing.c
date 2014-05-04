@@ -232,7 +232,7 @@ void fparse_func(FILE * file, struct ctype * ty, char * id)
 	
 	*paramtys = new_list(16);
 	
-	stack_offset = 4;
+	stack_offset = target.cpu.bytes;
 	func = new_function(ty, id);
 	
 	while (token.str[0] != ')')
@@ -260,11 +260,11 @@ void fparse_func(FILE * file, struct ctype * ty, char * id)
 			showerror(stderr, "error", "expected ','");
 		}
 		
+		stack_offset += pty->size > target.cpu.bytes ? pty->size : target.cpu.bytes;
 		param = new_param(pty, pid, stack_offset);
 		free(pid);
 		add(&func->params, (void *)param, (void (*)(void *))param->cleanup);
 		add(paramtys, (void *)pty, NULL);
-		stack_offset += pty->size > target.cpu.bytes ? pty->size : target.cpu.bytes;
 	}
 	
 	func->paramdepth = stack_offset - 4;
