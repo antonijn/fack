@@ -98,7 +98,7 @@ static void * parse_id(
 	}
 	
 	so = (struct asmexpression *)new_imm(loc->stack_offset);
-	res.asme = (struct asmexpression *)new_ea8086(&ss, &bp, NULL, so, loc->type->size, 1);
+	res.asme = (struct asmexpression *)new_ea8086(&ss, target.cpu.basep, NULL, so, loc->type->size, 1);
 	if (loc->isarray) {
 		so = getgpr(loc->type->size);
 		write_instr(ofile, "lea", 2, so, res.asme);
@@ -256,9 +256,9 @@ static void * parse_deref(
 		
 	} else {
 		shield_all();
-		unshield(&bx);
-		unshield(&si);
-		unshield(&di);
+		unshield(target.cpu.acc);
+		unshield(target.cpu.sourcei);
+		unshield(target.cpu.desti);
 		res.type = ((struct cpointer *)r.type)->type;
 		res.asme = getgpr(res.type->size);
 		if (res.asme != r.asme) {
@@ -386,18 +386,25 @@ static void * parse_mul(
 {
 	struct expression res, l, r;
 	shield_all();
-	unshield(&ax);
+	unshield(target.cpu.acc);
 	l = unpacktogpr(left);
 	unshield_all();
-	shield(&ax);
+	shield(target.cpu.acc);
 	r = unpacktogprea(right);
 	if (l.type->size >= 2 || r.type->size >= 2) {
-		clogg(&dx);
+		clogg(target.cpu.data);
 	}
 	write_instr(ofile, "mul", 1, r.asme);
 	
 	unshield_all();
-	res.asme = (l.type->size >= 2 || r.type->size >= 2) ? &ax : &al;
+	switch (l.type->size > r.type->size ? l.type->size : r.type->size) {
+		case 1:
+			res.asme = &al;
+		case 2:
+			res.asme = &ax;
+		case 4:
+			res.asme = &eax;
+	}
 	res.type = l.type;
 	return pack(res);
 }
@@ -421,25 +428,6 @@ static void * parse_sub_int(
 	return pack(res);
 }
 
-static void * parse_add_int(
-	void * left,
-	void * right,
-	FILE * ofile)
-{
-	struct expression res, l, r;
-	unshield_all();
-	l = unpacktogpr(left);
-	shield(l.asme);
-	r = unpacktorvalue(right, l);
-	cloggflags();
-	write_instr(ofile, "add", 2, l.asme, r.asme);
-	
-	unshield_all();
-	res.asme = l.asme;
-	res.type = l.type;
-	return pack(res);
-}
-
 static void * parse_sub(
 	void * left,
 	void * right,
@@ -456,10 +444,29 @@ static void * parse_sub(
 	return parse_sub_int(left, right, ofile);
 }
 
-static void * parse_add(
+static void * parse_add_int(
+	FILE * ofile,
 	void * left,
-	void * right,
-	FILE * ofile)
+	void * right)
+{
+	struct expression res, l, r;
+	unshield_all();
+	l = unpacktogpr(left);
+	shield(l.asme);
+	r = unpacktorvalue(right, l);
+	cloggflags();
+	write_instr(ofile, "add", 2, l.asme, r.asme);
+	
+	unshield_all();
+	res.asme = l.asme;
+	res.type = l.type;
+	return pack(res);
+}
+
+static void * parse_add(
+	FILE * ofile,
+	void * left,
+	void * right)
 {
 	struct expression res, l, r;
 	if (unpackty(left)->ty == POINTER) {
@@ -646,23 +653,23 @@ static void * parse_bop(
 		
 		struct expression l, r;
 		shield_all();
-		unshield(&ax);
+		unshield(target.cpu.acc);
 		l = unpacktogpr(left);
 		unshield_all();
-		shield(&ax);
+		shield(target.cpu.acc);
 		if (l.type->size < 2 && unpackty(right)->size < 2) {
 			res.asme = &ah;
 			clogg(&ah);
 			write_instr(ofile, "xor", 2, &ah, &ah);
 			shield(&ah);
 		} else {
-			res.asme = &ax;
-			clogg(&dx);
-			write_instr(ofile, "xor", 2, &dx, &dx);
-			shield(&dx);
+			res.asme = target.cpu.acc;
+			clogg(target.cpu.data);
+			write_instr(ofile, "xor", 2, target.cpu.data, target.cpu.data);
+			shield(target.cpu.data);
 		}
 		r = unpacktogprea(right);
-		clogg(&dx);
+		clogg(target.cpu.data);
 		write_instr(ofile, "div", 1, r.asme);
 		
 		unshield_all();
@@ -672,18 +679,18 @@ static void * parse_bop(
 		
 		struct expression l, r;
 		shield_all();
-		unshield(&ax);
+		unshield(target.cpu.acc);
 		l = unpacktogpr(left);
 		unshield_all();
-		shield(&ax);
-		shield(&dx);
+		shield(target.cpu.acc);
+		shield(target.cpu.data);
 		r = unpacktogprea(right);
-		clogg(&dx);
-		write_instr(ofile, "xor", 2, &dx, &dx);
+		clogg(target.cpu.data);
+		write_instr(ofile, "xor", 2, target.cpu.data, target.cpu.data);
 		write_instr(ofile, "div", 1, r.asme);
 		
 		unshield_all();
-		res.asme = &dx;
+		res.asme = target.cpu.data;
 		res.type = l.type;
 		resp = pack(res);
 	}
@@ -767,7 +774,7 @@ static void * eparser_fcall(
 		return eparser_r(file, ofile, NULL, lastop, vars);
 	}
 	
-	ret.asme = &ax;
+	ret.asme = target.cpu.acc;
 	ret.type = &_int;
 	gettok(file);
 	return eparser_r(file, ofile, pack(ret), lastop, vars);

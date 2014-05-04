@@ -385,7 +385,7 @@ void growstack(FILE * f, size_t x)
 {
 	if (x) {
 		struct immediate * imm = new_imm(x);
-		write_instr(f, "sub", 2, &sp, imm);
+		write_instr(f, "sub", 2, target.cpu.stackp, imm);
 		imm->cleanup(imm);
 		_stackdepth += x;
 	}
@@ -395,7 +395,7 @@ void shrinkstack(FILE * f, size_t x)
 {
 	if (x) {
 		struct immediate * imm = new_imm(x);
-		write_instr(f, "add", 2, &sp, imm);
+		write_instr(f, "add", 2, target.cpu.stackp, imm);
 		imm->cleanup(imm);
 		_stackdepth -= x;
 	}

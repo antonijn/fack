@@ -78,6 +78,20 @@ struct cprimitive {
 	const char * name;
 };
 
+struct cfunctiontype;
+struct cfunction;
+
+struct cconv {
+	void (*prepcall)(FILE * ofile, struct cfunctiontype * func);
+	void (*cleancall)(FILE * ofile, struct cfunctiontype * func);
+	void (*call)(FILE * ofile, void * func);
+	void (*loadparam)(FILE * ofile, struct cfunctiontype * func, int param, void * p);
+	void * (*retrieveret)(FILE * ofile, struct cfunctiontype * func);
+
+	void * (*retrieveparam)(FILE * ofile, struct cfunction * func, int param);
+	void (*loadret)(FILE * ofile, struct cfunction * func, void * retval);
+};
+
 struct cfunctiontype {
 	enum ctype_type ty;
 	void (*cleanup)(struct cprimitive * self);
@@ -85,6 +99,7 @@ struct cfunctiontype {
 	size_t size;
 	
 	size_t paramdepth;
+	struct cconv cc;
 	struct ctype * ret;
 	struct list * paramtypes;
 };
@@ -163,11 +178,6 @@ enum modifiers {
 	MF_STATIC,
 	MF_FAR,
 	MF_CONST,
-};
-
-enum cconv {
-	CDECL,
-	STDCALL,
 };
 
 /*

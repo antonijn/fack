@@ -83,7 +83,7 @@ struct cpointer * new_cpointer(struct ctype * type)
 {
 	struct cpointer * res = malloc(sizeof(struct cpointer));
 	res->ty = POINTER;
-	res->size = (target == INTEL_8086) ? 2 : 4;
+	res->size = target.cpu.bytes;
 	res->cleanup = &cleanup_cpointer;
 	res->lcleanup = &cleanup_cpointer;
 	res->type = type;
@@ -102,7 +102,7 @@ struct cfunctiontype * new_cfunctiontype(struct ctype * ret, struct list * param
 {
 	struct cfunctiontype * res = malloc(sizeof(struct cfunctiontype));
 	res->ty = FUNCTION_PTR;
-	res->size = (target == INTEL_8086) ? 2 : 4;
+	res->size = target.cpu.bytes;
 	res->cleanup = &cleanup_cfunctionptr;
 	res->lcleanup = &cleanup_cfunctionptr;
 	res->ret = ret;
@@ -272,10 +272,10 @@ void fparse_func(FILE * file, struct ctype * ty, char * id)
 		to_section(ofile, ".text");
 		
 		write_label(ofile, func->label);
-		write_instr(ofile, "push", 1, &bp);
-		write_instr(ofile, "mov", 2, &bp, &sp);
+		write_instr(ofile, "push", 1, target.cpu.stackp);
+		write_instr(ofile, "mov", 2, target.cpu.basep, target.cpu.stackp);
 		sparser_body(file, ofile, &func->params);
-		write_instr(ofile, "pop", 1, &bp);
+		write_instr(ofile, "pop", 1, target.cpu.basep);
 		write_instr(ofile, "ret", 0);
 	}
 }

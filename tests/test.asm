@@ -10,8 +10,8 @@ mode:
 
 section .text
 enter13h:
-	push bp
-	mov bp, sp
+	push esp
+	mov ebp, esp
 
 	; begin user generated asm
 
@@ -23,12 +23,12 @@ enter13h:
 	int 0x10
 	
 	; end user generated asm
-	pop bp
+	pop ebp
 	ret
 
 leave13h:
-	push bp
-	mov bp, sp
+	push esp
+	mov ebp, esp
 
 	; begin user generated asm
 
@@ -39,18 +39,18 @@ leave13h:
 	int 0x21
 	
 	; end user generated asm
-	pop bp
+	pop ebp
 	ret
 
 main:
-	push bp
-	mov bp, sp
-	sub sp, 4
-	mov al, byte [ss:bp + -3]
-	mul byte [ss:bp + -4]
+	push esp
+	mov ebp, esp
+	sub esp, 4
+	mov al, byte [ss:ebp + -3]
+	mul byte [ss:ebp + -4]
 	mov bx, 2
 	mul bx
-	mov word [ss:bp + -2], ax
-	add sp, 4
-	pop bp
+	mov word [ss:ebp + -2], eax
+	add esp, 4
+	pop ebp
 	ret

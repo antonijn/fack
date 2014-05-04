@@ -17,54 +17,54 @@ static void rcu(void * self)
 {
 }
 
-struct reg eax = { REGISTER, &reg_tostring, &rcu, NULL, "eax", 4, INTEL_80386 };
-struct reg ebx = { REGISTER, &reg_tostring, &rcu, NULL, "ebx", 4, INTEL_80386 };
-struct reg ecx = { REGISTER, &reg_tostring, &rcu, NULL, "ecx", 4, INTEL_80386 };
-struct reg edx = { REGISTER, &reg_tostring, &rcu, NULL, "edx", 4, INTEL_80386 };
-struct reg esi = { REGISTER, &reg_tostring, &rcu, NULL, "esi", 4, INTEL_80386 };
-struct reg edi = { REGISTER, &reg_tostring, &rcu, NULL, "edi", 4, INTEL_80386 };
-struct reg esp = { REGISTER, &reg_tostring, &rcu, NULL, "esp", 4, INTEL_80386 };
-struct reg ebp = { REGISTER, &reg_tostring, &rcu, NULL, "ebp", 4, INTEL_80386 };
+struct reg eax = { REGISTER, &reg_tostring, &rcu, NULL, "eax", 4 };
+struct reg ebx = { REGISTER, &reg_tostring, &rcu, NULL, "ebx", 4 };
+struct reg ecx = { REGISTER, &reg_tostring, &rcu, NULL, "ecx", 4 };
+struct reg edx = { REGISTER, &reg_tostring, &rcu, NULL, "edx", 4 };
+struct reg esi = { REGISTER, &reg_tostring, &rcu, NULL, "esi", 4 };
+struct reg edi = { REGISTER, &reg_tostring, &rcu, NULL, "edi", 4 };
+struct reg esp = { REGISTER, &reg_tostring, &rcu, NULL, "esp", 4 };
+struct reg ebp = { REGISTER, &reg_tostring, &rcu, NULL, "ebp", 4 };
 
-struct reg ax = { REGISTER, &reg_tostring, &rcu, &eax, "ax", 2, INTEL_8086 };
-struct reg bx = { REGISTER, &reg_tostring, &rcu, &ebx, "bx", 2, INTEL_8086 };
-struct reg cx = { REGISTER, &reg_tostring, &rcu, &ecx, "cx", 2, INTEL_8086 };
-struct reg dx = { REGISTER, &reg_tostring, &rcu, &edx, "dx", 2, INTEL_8086 };
-struct reg si = { REGISTER, &reg_tostring, &rcu, &esi, "si", 2, INTEL_8086 };
-struct reg di = { REGISTER, &reg_tostring, &rcu, &edi, "di", 2, INTEL_8086 };
-struct reg sp = { REGISTER, &reg_tostring, &rcu, &esp, "sp", 2, INTEL_8086 };
-struct reg bp = { REGISTER, &reg_tostring, &rcu, &ebp, "bp", 2, INTEL_8086 };
+struct reg ax = { REGISTER, &reg_tostring, &rcu, &eax, "ax", 2 };
+struct reg bx = { REGISTER, &reg_tostring, &rcu, &ebx, "bx", 2 };
+struct reg cx = { REGISTER, &reg_tostring, &rcu, &ecx, "cx", 2 };
+struct reg dx = { REGISTER, &reg_tostring, &rcu, &edx, "dx", 2 };
+struct reg si = { REGISTER, &reg_tostring, &rcu, &esi, "si", 2 };
+struct reg di = { REGISTER, &reg_tostring, &rcu, &edi, "di", 2 };
+struct reg sp = { REGISTER, &reg_tostring, &rcu, &esp, "sp", 2 };
+struct reg bp = { REGISTER, &reg_tostring, &rcu, &ebp, "bp", 2 };
 
-struct reg ah = { REGISTER, &reg_tostring, &rcu, &ax, "ah", 1, INTEL_8086 };
-struct reg bh = { REGISTER, &reg_tostring, &rcu, &bx, "bh", 1, INTEL_8086 };
-struct reg ch = { REGISTER, &reg_tostring, &rcu, &cx, "ch", 1, INTEL_8086 };
-struct reg dh = { REGISTER, &reg_tostring, &rcu, &dx, "dh", 1, INTEL_8086 };
-struct reg al = { REGISTER, &reg_tostring, &rcu, &ax, "al", 1, INTEL_8086 };
-struct reg bl = { REGISTER, &reg_tostring, &rcu, &bx, "bl", 1, INTEL_8086 };
-struct reg cl = { REGISTER, &reg_tostring, &rcu, &cx, "cl", 1, INTEL_8086 };
-struct reg dl = { REGISTER, &reg_tostring, &rcu, &dx, "dl", 1, INTEL_8086 };
+struct reg ah = { REGISTER, &reg_tostring, &rcu, &ax, "ah", 1 };
+struct reg bh = { REGISTER, &reg_tostring, &rcu, &bx, "bh", 1 };
+struct reg ch = { REGISTER, &reg_tostring, &rcu, &cx, "ch", 1 };
+struct reg dh = { REGISTER, &reg_tostring, &rcu, &dx, "dh", 1 };
+struct reg al = { REGISTER, &reg_tostring, &rcu, &ax, "al", 1 };
+struct reg bl = { REGISTER, &reg_tostring, &rcu, &bx, "bl", 1 };
+struct reg cl = { REGISTER, &reg_tostring, &rcu, &cx, "cl", 1 };
+struct reg dl = { REGISTER, &reg_tostring, &rcu, &dx, "dl", 1 };
 
-struct reg cs = { REGISTER, &reg_tostring, &rcu, NULL, "cs", 2, INTEL_8086 };
-struct reg ds = { REGISTER, &reg_tostring, &rcu, NULL, "ds", 2, INTEL_8086 };
-struct reg ss = { REGISTER, &reg_tostring, &rcu, NULL, "ss", 2, INTEL_8086 };
-struct reg es = { REGISTER, &reg_tostring, &rcu, NULL, "es", 2, INTEL_8086 };
-struct reg fs = { REGISTER, &reg_tostring, &rcu, NULL, "fs", 2, INTEL_80386 };
-struct reg gs = { REGISTER, &reg_tostring, &rcu, NULL, "gs", 2, INTEL_80386 };
+struct reg cs = { REGISTER, &reg_tostring, &rcu, NULL, "cs", 2 };
+struct reg ds = { REGISTER, &reg_tostring, &rcu, NULL, "ds", 2 };
+struct reg ss = { REGISTER, &reg_tostring, &rcu, NULL, "ss", 2 };
+struct reg es = { REGISTER, &reg_tostring, &rcu, NULL, "es", 2 };
+struct reg fs = { REGISTER, &reg_tostring, &rcu, NULL, "fs", 2 };
+struct reg gs = { REGISTER, &reg_tostring, &rcu, NULL, "gs", 2 };
 
-struct flags_flag f_e  = { FLAG, &flag_tostring, &rcu, "e",  INTEL_8086 };
-struct flags_flag f_ne = { FLAG, &flag_tostring, &rcu, "ne", INTEL_8086 };
-struct flags_flag f_g  = { FLAG, &flag_tostring, &rcu, "g",  INTEL_8086 };
-struct flags_flag f_ge = { FLAG, &flag_tostring, &rcu, "ge", INTEL_8086 };
-struct flags_flag f_l  = { FLAG, &flag_tostring, &rcu, "l",  INTEL_8086 };
-struct flags_flag f_le = { FLAG, &flag_tostring, &rcu, "le", INTEL_8086 };
-struct flags_flag f_a  = { FLAG, &flag_tostring, &rcu, "a",  INTEL_8086 };
-struct flags_flag f_ae = { FLAG, &flag_tostring, &rcu, "ae", INTEL_8086 };
-struct flags_flag f_b  = { FLAG, &flag_tostring, &rcu, "b",  INTEL_8086 };
-struct flags_flag f_be = { FLAG, &flag_tostring, &rcu, "be", INTEL_8086 };
-struct flags_flag f_s  = { FLAG, &flag_tostring, &rcu, "s",  INTEL_8086 };
-struct flags_flag f_ns = { FLAG, &flag_tostring, &rcu, "ns", INTEL_8086 };
-struct flags_flag f_z  = { FLAG, &flag_tostring, &rcu, "z",  INTEL_8086 };
-struct flags_flag f_nz = { FLAG, &flag_tostring, &rcu, "nz", INTEL_8086 };
+struct flags_flag f_e  = { FLAG, &flag_tostring, &rcu, "e" };
+struct flags_flag f_ne = { FLAG, &flag_tostring, &rcu, "ne" };
+struct flags_flag f_g  = { FLAG, &flag_tostring, &rcu, "g" };
+struct flags_flag f_ge = { FLAG, &flag_tostring, &rcu, "ge" };
+struct flags_flag f_l  = { FLAG, &flag_tostring, &rcu, "l" };
+struct flags_flag f_le = { FLAG, &flag_tostring, &rcu, "le" };
+struct flags_flag f_a  = { FLAG, &flag_tostring, &rcu, "a" };
+struct flags_flag f_ae = { FLAG, &flag_tostring, &rcu, "ae" };
+struct flags_flag f_b  = { FLAG, &flag_tostring, &rcu, "b" };
+struct flags_flag f_be = { FLAG, &flag_tostring, &rcu, "be" };
+struct flags_flag f_s  = { FLAG, &flag_tostring, &rcu, "s" };
+struct flags_flag f_ns = { FLAG, &flag_tostring, &rcu, "ns" };
+struct flags_flag f_z  = { FLAG, &flag_tostring, &rcu, "z" };
+struct flags_flag f_nz = { FLAG, &flag_tostring, &rcu, "nz" };
 
 static void imm_cleanup(struct immediate * self)
 {
@@ -213,9 +213,6 @@ static void imm_tostring(FILE * f, struct immediate * imm)
 
 static void reg_tostring(FILE * f, struct reg * r)
 {
-	if (r->arch == INTEL_80386 && target == INTEL_8086) {
-		showerror(stderr, "error", "%s is not available in 8086", r->name);
-	}
 	fprintf(f, "%s", r->name);
 }
 

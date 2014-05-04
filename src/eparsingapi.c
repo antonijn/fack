@@ -20,6 +20,13 @@ static struct list packed;
 static FILE * ofile;
 
 static struct reginfo regs[] = {
+	{ &eax, 0, 0 },
+	{ &ebx, 0, 0 },
+	{ &ecx, 0, 0 },
+	{ &edx, 0, 0 },
+	{ &esi, 0, 0 },
+	{ &edi, 0, 0 },
+	
 	{ &ax, 0, 0 },
 	{ &bx, 0, 0 },
 	{ &cx, 0, 0 },
@@ -43,7 +50,7 @@ static struct reginfo regs[] = {
 void printreginfo(void)
 {
 	int i;
-	for (i = 0; i < REGS_COUNT; ++i) {
+	for (i = target.cpu.offs; i < REGS_COUNT; ++i) {
 		printf("{ %s, %d, %d }\n", regs[i].r->name, regs[i].occupied, regs[i].shielded);
 	}
 }
@@ -58,17 +65,10 @@ int packedinflags(void * p)
 	return 0;
 }
 
-static void occupy(struct reg * r)
+static void occup(struct reg * r)
 {
 	int i;
-	if (r->arch != INTEL_80386 &&
-		target == INTEL_8086) {
-		return;
-	}
-	if (r->parent) {
-		occupy(r->parent);
-	}
-	for (i = 0; i < REGS_COUNT; ++i) {
+	for (i = target.cpu.offs; i < REGS_COUNT; ++i) {
 		if (regs[i].r == r) {
 			regs[i].occupied = 1;
 			return;
@@ -76,20 +76,38 @@ static void occupy(struct reg * r)
 	}
 }
 
-static void freereg(struct reg * r)
+static void occupydown(struct reg * r)
 {
 	int i;
+	for (i = target.cpu.offs; i < REGS_COUNT; ++i) {
+		if (regs[i].r->parent == r) {
+			occupydown(regs[i].r);
+		}
+	}
+	occup(r);
+}
+
+static void occupyup(struct reg * r)
+{
+	if (r->parent) {
+		occupyup(r->parent);
+	}
+	occup(r);
+}
+
+static void occupy(struct reg * r)
+{
 	if (!r) {
 		return;
 	}
-	if (r->arch != INTEL_80386 &&
-		target == INTEL_8086) {
-		return;
-	}
-	if (r->parent) {
-		freereg(r->parent);
-	}
-	for (i = 0; i < REGS_COUNT; ++i) {
+	occupyup(r);
+	occupydown(r);
+}
+
+static void freer(struct reg * r)
+{
+	int i;
+	for (i = target.cpu.offs; i < REGS_COUNT; ++i) {
 		if (regs[i].r == r) {
 			regs[i].occupied = 0;
 			return;
@@ -97,10 +115,116 @@ static void freereg(struct reg * r)
 	}
 }
 
+static void freeregdown(struct reg * r)
+{
+	int i;
+	for (i = target.cpu.offs; i < REGS_COUNT; ++i) {
+		if (regs[i].r->parent == r) {
+			freeregdown(regs[i].r);
+		}
+	}
+	freer(r);
+}
+
+static void freeregup(struct reg * r)
+{
+	if (r->parent) {
+		freeregup(r->parent);
+	}
+	freer(r);
+}
+
+static void freereg(struct reg * r)
+{
+	if (!r) {
+		return;
+	}
+	freeregup(r);
+	freeregdown(r);
+}
+
+void shieldr(struct reg * r)
+{
+	int i;
+	for (i = target.cpu.offs; i < REGS_COUNT; ++i) {
+		if (regs[i].r == r) {
+			regs[i].shielded = 1;
+			return;
+		}
+	}
+}
+
+void shielddown(struct reg * r)
+{
+	int i;
+	for (i = target.cpu.offs; i < REGS_COUNT; ++i) {
+		if (regs[i].r->parent == r) {
+			shielddown(regs[i].r);
+		}
+	}
+	shieldr(r);
+}
+
+void shieldup(struct reg * r)
+{
+	if (r->parent) {
+		shieldup(r->parent);
+	}
+	shieldr(r);
+}
+
+void shield(struct asmexpression * r)
+{
+	if (!r || r->ty != REGISTER) {
+		return;
+	}
+	shieldup(r);
+	shielddown(r);
+}
+
+void unshieldr(struct reg * r)
+{
+	int i;
+	for (i = target.cpu.offs; i < REGS_COUNT; ++i) {
+		if (regs[i].r == r) {
+			regs[i].shielded = 0;
+			return;
+		}
+	}
+}
+
+void unshielddown(struct reg * r)
+{
+	int i;
+	for (i = target.cpu.offs; i < REGS_COUNT; ++i) {
+		if (regs[i].r->parent == r) {
+			unshielddown(regs[i].r);
+		}
+	}
+	unshieldr(r);
+}
+
+void unshieldup(struct reg * r)
+{
+	if (r->parent) {
+		unshieldup(r->parent);
+	}
+	unshieldr(r);
+}
+
+void unshield(struct asmexpression * r)
+{
+	if (!r || r->ty != REGISTER) {
+		return;
+	}
+	unshieldup(r);
+	unshielddown(r);
+}
+
 static int isoccupied(struct reg * r)
 {
 	int i;
-	for (i = 0; i < REGS_COUNT; ++i) {
+	for (i = target.cpu.offs; i < REGS_COUNT; ++i) {
 		if (regs[i].r == r) {
 			return regs[i].occupied;
 		}
@@ -110,7 +234,7 @@ static int isoccupied(struct reg * r)
 static int isshielded(struct reg * r)
 {
 	int i;
-	for (i = 0; i < REGS_COUNT; ++i) {
+	for (i = target.cpu.offs; i < REGS_COUNT; ++i) {
 		if (regs[i].r == r) {
 			return regs[i].shielded;
 		}
@@ -140,13 +264,13 @@ struct reg * getgpr(size_t sz)
 	/*printf("GPR requested \n");
 	print_regs();*/
 	
-	for (i = 0; i < REGS_COUNT; ++i) {
+	for (i = target.cpu.offs; i < REGS_COUNT; ++i) {
 		if (isavailable(regs[i].r) && regs[i].r->size == sz) {
 			return regs[i].r;
 		}
 	}
 	
-	for (i = 0; i < REGS_COUNT; ++i) {
+	for (i = target.cpu.offs; i < REGS_COUNT; ++i) {
 		if (!isshielded(regs[i].r) && regs[i].r->size == sz) {
 			clogg(regs[i].r);
 			return regs[i].r;
@@ -157,15 +281,11 @@ struct reg * getgpr(size_t sz)
 void clogg(struct reg * r)
 {
 	int i;
-	if (r->arch != INTEL_80386 &&
-		target == INTEL_8086) {
-		return;
-	}
 	if (r->parent) {
 		clogg(r->parent);
 	}
 	
-	for (i = 0; i < packed.count; ++i) {
+	for (i = target.cpu.offs; i < packed.count; ++i) {
 		struct expr_internal * ei = packed.elements[i].element;
 		if (!ei->pushed) {
 			if (ei->e.asme == r) {
@@ -187,7 +307,7 @@ void cloggall(void)
 {
 	int i;
 	
-	for (i = packed.count - 1; i >= 0; --i) {
+	for (i = packed.count - 1; i >= target.cpu.offs; --i) {
 		struct expr_internal * ei = packed.elements[i].element;
 		if (ei->e.asme->ty == DEREFERENCE && !ei->r && !ei->pushed) {
 			write_instr(ofile, "push", 1, ei->e.asme);
@@ -195,19 +315,19 @@ void cloggall(void)
 		}
 	}
 	
-	clogg(&ax);
-	clogg(&bx);
-	clogg(&cx);
-	clogg(&dx);
-	clogg(&si);
-	clogg(&di);
+	clogg(target.cpu.acc);
+	clogg(target.cpu.base);
+	clogg(target.cpu.count);
+	clogg(target.cpu.data);
+	clogg(target.cpu.sourcei);
+	clogg(target.cpu.desti);
 	cloggflags();
 }
 
 void cloggmem(struct effective_address8086 * ea)
 {
 	int i;
-	for (i = 0; i < packed.count; ++i) {
+	for (i = target.cpu.offs; i < packed.count; ++i) {
 		struct expr_internal * ei = packed.elements[i].element;
 		/* reference equality for now */
 		if (ei->e.asme == ea && !ei->r && !ei->pushed) {
@@ -222,7 +342,7 @@ void cloggmem(struct effective_address8086 * ea)
 void cloggflags(void)
 {
 	int i;
-	for (i = 0; i < packed.count; ++i) {
+	for (i = target.cpu.offs; i < packed.count; ++i) {
 		struct expr_internal * ei = packed.elements[i].element;
 		if (!ei->pushed && ei->e.asme->ty == FLAG) {
 			struct immediate * skip;
@@ -284,7 +404,7 @@ void * pack(struct expression e)
 	if (e.asme->ty == DEREFERENCE) {
 		ei->r = NULL;
 		ei->rlist = new_list(4);
-		if (((struct effective_address8086 *)e.asme)->base != &bp &&
+		if (((struct effective_address8086 *)e.asme)->base != target.cpu.basep &&
 			((struct effective_address8086 *)e.asme)->base) {
 			struct expression pdre;
 			struct packedderefreg * pdr = malloc(sizeof(struct packedderefreg));
@@ -448,54 +568,22 @@ struct expression unpacktoflags(void * p)
 
 void unshield_all(void)
 {
-	unshield(&ax);
-	unshield(&bx);
-	unshield(&cx);
-	unshield(&dx);
-	unshield(&si);
-	unshield(&di);
-}
-
-void unshield(struct asmexpression * r)
-{
-	int i;
-	
-	if (r->ty != REGISTER) {
-		return;
-	}
-	
-	for (i = 0; i < REGS_COUNT; ++i) {
-		if (regs[i].r == r) {
-			regs[i].shielded = 0;
-			return;
-		}
-	}
+	unshield(target.cpu.acc);
+	unshield(target.cpu.base);
+	unshield(target.cpu.count);
+	unshield(target.cpu.data);
+	unshield(target.cpu.sourcei);
+	unshield(target.cpu.desti);
 }
 
 void shield_all(void)
 {
-	shield(&ax);
-	shield(&bx);
-	shield(&cx);
-	shield(&dx);
-	shield(&si);
-	shield(&di);
-}
-
-void shield(struct asmexpression * r)
-{
-	int i;
-	
-	if (r->ty != REGISTER) {
-		return;
-	}
-	
-	for (i = 0; i < REGS_COUNT; ++i) {
-		if (regs[i].r == r) {
-			regs[i].shielded = 1;
-			return;
-		}
-	}
+	shield(target.cpu.acc);
+	shield(target.cpu.base);
+	shield(target.cpu.count);
+	shield(target.cpu.data);
+	shield(target.cpu.sourcei);
+	shield(target.cpu.desti);
 }
 
 struct ctype * unpackty(void * p)

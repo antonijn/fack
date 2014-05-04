@@ -3,20 +3,31 @@
 
 #include <stdio.h>
 
-enum optimise {
-	O0,
-	O1,
-	O2,
-	O3
+struct fform {
+    int dynlink;
 };
 
-enum machine {
-	INTEL_8086 = 0x01,
-	INTEL_80386 = 0x02
+extern struct fform ff_bin, ff_com, ff_mz, ff_ne, ff_pe, ff_elf;
+
+struct arch {
+	int bytes;
+	struct reg * acc, * base, * count, * data;
+	struct reg * sourcei, * desti;
+	struct reg * stackp, * basep;
+
+	struct cconv * cdecl, * stdcall, * fastcall;
+	int offs;
 };
 
-extern enum optimise optimiseLevel;
-extern enum machine target;
+extern struct arch m80386;
+
+struct targ {
+	struct arch cpu;
+	struct fform form;
+};
+
+extern struct targ target;
+
 extern const char * outfile;
 extern const char * filenames[32];
 

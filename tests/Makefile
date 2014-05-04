@@ -1,4 +1,4 @@
 build:
-	../fack test.c
+	../fack -m80386 test.c
 debug:
-	gdb --args ../fack test.c
+	gdb --args ../fack -m80386 test.c

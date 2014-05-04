@@ -27,7 +27,6 @@ struct reg {
 	struct reg * parent;
 	const char * name;
 	size_t size;
-	enum machine arch;
 };
 
 struct flags_flag {
@@ -36,7 +35,6 @@ struct flags_flag {
 	void (*cleanup)(void * self);
 	
 	const char * name;
-	enum machine arch;
 };
 
 extern struct reg eax, ebx, ecx, edx, esi, edi, ebp, esp;
