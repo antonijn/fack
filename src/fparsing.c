@@ -261,6 +261,9 @@ void fparse_func(FILE * file, struct ctype * ty, char * id)
 		}
 		
 		stack_offset += pty->size > target.cpu.bytes ? pty->size : target.cpu.bytes;
+		if (target.cpu.bytes > pty->size) {
+			pty = &_int;
+		}
 		param = new_param(pty, pid, stack_offset);
 		free(pid);
 		add(&func->params, (void *)param, (void (*)(void *))param->cleanup);

@@ -5,10 +5,9 @@ section .text
 foo:
 	push esp
 	mov ebp, esp
-	mov ax, word [ss:ebp + 8]
-	movsx bx, byte [ss:ebp + 12]
-	mul bx
-	mov word [ss:ebp + 8], ax
+	mov eax, dword [ss:ebp + 8]
+	mul dword [ss:ebp + 12]
+	mov dword [ss:ebp + 8], eax
 	pop ebp
 	ret
 
@@ -27,10 +26,10 @@ main:
 	sub esp, 8
 	mov ax, word [ss:ebp + -2]
 	movsx eax, ax
-	mov word [ss:bp + -8], eax
+	mov dword [ss:bp + -8], eax
 	mov al, byte [ss:ebp + -3]
 	movsx eax, al
-	mov word [ss:bp + -12], eax
+	mov dword [ss:bp + -12], eax
 	call foo
 	add esp, 8
 	add esp, 4
