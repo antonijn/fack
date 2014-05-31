@@ -1,4 +1,6 @@
 fack
 ====
 
-The Finn-Antonie C Kompiler for 16 bit ASM code
+The Finn-Antonie Compiler Kit for legacy operating system, and 16-bit support.
+
+
